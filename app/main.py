@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from app.config import get_settings
 from app.exceptions import register_exception_handlers
+from app.routers import users
 
 settings = get_settings()
 
@@ -12,6 +13,7 @@ app = FastAPI(
 )
 
 register_exception_handlers(app)
+app.include_router(users.router)
 
 
 @app.get("/health", tags=["health"], summary="Service health check")
