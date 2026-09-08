@@ -46,3 +46,18 @@ def test_list_projects_filtered_by_owner(client, project, user):
     r2 = client.get(f"/projects?owner_id={other_owner['id']}")
     assert r2.status_code == 200
     assert len(r2.json()) == 0
+
+
+def test_create_project_empty_body_returns_422(client):
+    r = client.post("/projects", json={})
+    assert r.status_code == 422
+
+
+def test_create_project_wrong_type_owner_id_returns_422(client):
+    r = client.post("/projects", json={"name": "X", "owner_id": 12345})
+    assert r.status_code == 422
+
+
+def test_get_project_malformed_id_returns_422_not_404(client):
+    r = client.get("/projects/not-a-uuid")
+    assert r.status_code == 422

@@ -65,3 +65,27 @@ def test_delete_user_returns_204_then_404(client, user):
     assert r.status_code == 204
     r2 = client.get(f"/users/{user['id']}")
     assert r2.status_code == 404
+
+
+def test_create_user_empty_body_returns_422(client):
+    r = client.post("/users", json={})
+    assert r.status_code == 422
+    assert r.json()["error"]["code"] == "validation_error"
+
+
+def test_create_user_wrong_type_returns_422(client):
+    r = client.post("/users", json={"name": 123, "email": "grace@example.com", "password": True})
+    assert r.status_code == 422
+
+
+def test_get_user_malformed_id_returns_422_not_404(client):
+    r = client.get("/users/not-a-uuid")
+    assert r.status_code == 422
+
+
+def test_create_user_malformed_json_body_returns_422_not_400(client):
+    r = client.post(
+        "/users", content="not-json-at-all", headers={"Content-Type": "application/json"}
+    )
+    assert r.status_code == 422
+    assert r.json()["error"]["code"] == "validation_error"

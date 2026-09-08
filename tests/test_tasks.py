@@ -81,3 +81,18 @@ def test_delete_task_returns_204_then_404(client, project):
 def test_delete_task_not_found_returns_404(client):
     r = client.delete(f"/tasks/{NIL_UUID}")
     assert r.status_code == 404
+
+
+def test_create_task_empty_body_returns_422(client):
+    r = client.post("/tasks", json={})
+    assert r.status_code == 422
+
+
+def test_create_task_wrong_type_project_id_returns_422(client):
+    r = client.post("/tasks", json={"title": "T", "project_id": 12345})
+    assert r.status_code == 422
+
+
+def test_get_task_malformed_id_returns_422_not_404(client):
+    r = client.get("/tasks/not-a-uuid")
+    assert r.status_code == 422
