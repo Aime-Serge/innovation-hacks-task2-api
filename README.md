@@ -146,7 +146,16 @@ All error responses share this shape:
 
 ## Screenshots
 
-_Add screenshots of `/docs` (Swagger UI) and a few example requests/responses here before submitting._
+All captured against the real running app — Swagger UI's own "Try it
+out" hitting a live server, not mocked examples.
+
+| Swagger UI overview |
+| --- |
+| ![Swagger UI overview](docs/screenshots/01-swagger-overview.png) |
+
+| `POST /users` expanded | Real request/response via "Try it out" |
+| --- | --- |
+| ![Create user expanded](docs/screenshots/02-create-user-expanded.png) | ![Create user response](docs/screenshots/03-create-user-response.png) |
 
 ## Demo
 
