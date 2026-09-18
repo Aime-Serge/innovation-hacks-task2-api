@@ -23,5 +23,8 @@ class ProjectRepository:
         self._projects[project.id] = project
         return project
 
+    def delete(self, project_id: UUID) -> None:
+        self._projects.pop(project_id, None)
+
 
 project_repository = ProjectRepository()

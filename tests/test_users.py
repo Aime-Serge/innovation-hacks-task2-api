@@ -89,3 +89,19 @@ def test_create_user_malformed_json_body_returns_422_not_400(client):
     )
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "validation_error"
+
+
+def test_delete_user_cascades_to_owned_projects_and_their_tasks(client, project):
+    # `project` fixture creates a user and a project owned by them.
+    task = client.post(
+        "/tasks", json={"title": "Do a thing", "project_id": project["id"]}
+    ).json()
+
+    r = client.delete(f"/users/{project['owner_id']}")
+    assert r.status_code == 204
+
+    # Without this cascade, the project (and its task) would be left
+    # behind with an owner_id/project_id that can never resolve again —
+    # there's no DELETE /projects endpoint to clean it up manually.
+    assert client.get(f"/projects/{project['id']}").status_code == 404
+    assert client.get(f"/tasks/{task['id']}").status_code == 404

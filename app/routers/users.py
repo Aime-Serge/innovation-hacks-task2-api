@@ -4,6 +4,8 @@ from fastapi import APIRouter, status
 
 from app.exceptions import ConflictError, NotFoundError
 from app.models.user import UserCreate, UserInDB, UserOut, UserUpdate
+from app.repositories.project_repo import project_repository
+from app.repositories.task_repo import task_repository
 from app.repositories.user_repo import user_repository
 from app.security import hash_password
 
@@ -62,4 +64,16 @@ def delete_user(user_id: UUID) -> None:
     user = user_repository.get(user_id)
     if user is None:
         raise NotFoundError(f"User '{user_id}' not found.")
+
+    # Cascade: there's no DELETE /projects endpoint, so a project left
+    # behind here would have an owner_id that can never resolve again —
+    # a permanently dangling foreign key with no cleanup path via the
+    # API. Deleting the user's owned projects (and each project's own
+    # tasks) keeps referential integrity the same way a real database's
+    # ON DELETE CASCADE would.
+    for project in project_repository.list(owner_id=user_id):
+        for task in task_repository.list(project_id=project.id):
+            task_repository.delete(task.id)
+        project_repository.delete(project.id)
+
     user_repository.delete(user_id)
