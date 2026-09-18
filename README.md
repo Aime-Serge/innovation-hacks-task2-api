@@ -16,17 +16,26 @@ Task 2 of the Innovation Hacks Full Stack Development Internship — a REST API 
 - Project management: create, list (with optional `owner_id` filter), get by id
 - Task management: create, list (with optional `project_id`/`status` filters), get by id, update, delete
 - Dedicated task status-transition endpoint (`todo` / `in-progress` / `done`)
-- Centralized error handling — every error response shares one JSON shape
+- Centralized error handling — every error response shares one JSON shape,
+  including framework-raised errors (unmatched route, wrong HTTP method),
+  not just application-raised ones
 - Input validation on every write operation via Pydantic models
+- CORS configured for the frontend origin (`CORS_ORIGINS`)
 - Environment-variable-driven configuration, no hardcoded secrets
 - Auto-generated interactive API docs at `/docs` and `/redoc`
 
 ## Architecture Notes
 
 - **Storage**: in-memory repositories (`app/repositories/`) behind a fixed interface. Task 3 will swap these for a real database-backed implementation without changing any router code.
-- **Relationships**: `Project.owner_id` references a `User`; `Task.project_id` references a `Project`. Creating a project/task with a non-existent owner/project returns `404`.
+- **Relationships**: `Project.owner_id` references a `User`; `Task.project_id` references a `Project`. Creating a project/task with a non-existent owner/project returns `404`. Deleting a user cascades to that user's owned projects and each project's own tasks, the same way a real database's `ON DELETE CASCADE` would — there's no `DELETE /projects` endpoint, so a project left behind here would have an `owner_id` that could never resolve again.
 - **Auth-readiness**: each router is registered with `dependencies=[]`. Task 4 adds the auth dependency at the router level, with no changes to individual handlers.
 - **No authentication in Task 2**: user passwords are stored hashed (PBKDF2-HMAC-SHA256, salted) for forward compatibility, but there is no login/token endpoint — that's Task 4's explicit "Authentication" requirement.
+
+## Known Gaps / Assumptions
+
+- **No pagination**: `GET /users`, `GET /projects`, and `GET /tasks` return every matching record with no `limit`/`offset`. Fine at this task's scale (an in-memory store with no seed data), but a real deployment would need it.
+- **No rate limiting**: combined with no auth, nothing currently prevents a client from hammering any endpoint, including `POST /users`, which does 260k PBKDF2 iterations per call.
+- **Single-process in-memory store**: the three repositories are plain, unlocked `dict`s shared as module-level singletons — correct for a single-worker dev process, but not safe for multiple workers or true concurrent access. Task 3 replaces this with a real database.
 
 ## Getting Started
 
@@ -76,6 +85,7 @@ pytest -v
 | `HOST` | Bind address | active |
 | `PORT` | Bind port | active |
 | `LOG_LEVEL` | Logging verbosity | active |
+| `CORS_ORIGINS` | Comma-separated allowed frontend origins | active |
 | `DATABASE_URL` | Database connection string | placeholder — unused until Task 3 |
 | `SECRET_KEY` | Auth signing key | placeholder — unused until Task 4 |
 
@@ -97,7 +107,7 @@ All error responses share this shape:
 | GET | `/users` | List users | 200 | — |
 | GET | `/users/{user_id}` | Get user by id | 200 | 404 |
 | PATCH | `/users/{user_id}` | Partially update a user | 200 | 404, 422, 409 |
-| DELETE | `/users/{user_id}` | Delete a user | 204 | 404 |
+| DELETE | `/users/{user_id}` | Delete a user (cascades to their owned projects and tasks) | 204 | 404 |
 
 ### Projects
 
