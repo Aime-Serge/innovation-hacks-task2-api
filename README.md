@@ -159,4 +159,6 @@ out" hitting a live server, not mocked examples.
 
 ## Demo
 
-_Add the demo video link here before submitting._
+- **Demo video**: _add link here after recording_ — see
+  [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) for the timestamped shot list
+  (2–2:30 min, per the internship's Demo Video Requirements).
