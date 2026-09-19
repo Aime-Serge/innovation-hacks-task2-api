@@ -144,6 +144,29 @@ All error responses share this shape:
 - **422** — Pydantic validation failure (missing/invalid field, bad enum value) — FastAPI's native behavior, kept as-is rather than remapped to 400
 - **500** — unhandled server error, generic message only; full traceback logged server-side
 
+## Deployment
+
+Deploys to **Render** (free tier) from the included [`render.yaml`](render.yaml):
+
+1. render.com → **New → Blueprint** → select this repo. It reads
+   `render.yaml` and creates the `ih-task2-api` web service.
+2. When prompted for `CORS_ORIGINS`, enter the origin of whatever will call
+   this API from a browser (e.g. your Task 1 Vercel URL), or a placeholder
+   like `http://localhost:3000` if nothing does yet.
+3. Wait for the build, then open `https://<your-service>.onrender.com/docs`
+   for the live Swagger UI, or `/health` for a quick check.
+
+Things to know:
+
+- **Data is not persistent.** Storage is an in-process dict, so everything
+  resets whenever the service restarts, redeploys, or wakes from Render's
+  free-tier sleep. That's this task's design (Task 3 adds a real
+  database), not a deployment fault. The blueprint pins
+  `WEB_CONCURRENCY=1` because with several workers each would hold its own
+  separate copy of the data.
+- The free tier sleeps after inactivity; the first request afterwards
+  takes ~30s.
+
 ## Screenshots
 
 All captured against the real running app — Swagger UI's own "Try it

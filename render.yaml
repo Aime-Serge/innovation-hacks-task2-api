@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: ih-task2-api
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.14.3
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      # Storage here is an in-process dict, so this service must run as a
+      # single worker or each worker would hold its own separate copy of
+      # the data. Data also resets on every restart/redeploy — expected
+      # for this task (Task 3 adds real persistence).
+      - key: WEB_CONCURRENCY
+        value: "1"
+      # Comma-separated allowed browser origins. Set in the Render
+      # dashboard (not committed) to wherever a frontend will call this
+      # from; leave the placeholder if nothing calls it from a browser.
+      - key: CORS_ORIGINS
+        sync: false
