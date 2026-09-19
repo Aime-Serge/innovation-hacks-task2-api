@@ -182,6 +182,15 @@ out" hitting a live server, not mocked examples.
 
 ## Demo
 
+- **Live API**: https://ih-task2-api.onrender.com
+  ([Swagger UI](https://ih-task2-api.onrender.com/docs),
+  [health check](https://ih-task2-api.onrender.com/health)). Hosted on
+  Render's free tier, so the first request after a period of inactivity
+  can take up to a minute while it wakes, and data resets on restart
+  (in-memory storage, by design — see [Deployment](#deployment)).
+  Verified end to end against this URL: user/project/task CRUD, status
+  transitions, validation and conflict errors, cascade delete, and the
+  shared error format.
 - **Demo video**: _add link here after recording_ — see
   [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) for the timestamped shot list
   (2–2:30 min, per the internship's Demo Video Requirements).
