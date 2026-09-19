@@ -24,3 +24,15 @@ def test_public_base_url_forces_https_for_non_local_hosts():
     from app.landing import public_base_url
     assert public_base_url("ih-task2-api.onrender.com", "http") == "https://ih-task2-api.onrender.com"
     assert public_base_url("localhost:8000", "http") == "http://localhost:8000"
+
+
+def test_landing_page_maps_every_task_requirement_and_offers_live_checks(client):
+    from app.main import TASK_REQUIREMENTS
+    body = client.get("/").text
+    assert 'id="run"' in body and "Live verification" in body
+    for requirement, _how in TASK_REQUIREMENTS:
+        assert requirement in body
+
+
+def test_landing_page_leaves_no_unfilled_template_tokens(client):
+    assert "__" not in client.get("/").text.replace("__init__", "")
