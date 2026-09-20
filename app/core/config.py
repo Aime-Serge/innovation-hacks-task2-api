@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     )
 
     app_env: Literal["development", "test", "production"] = "development"
-    host: str = "0.0.0.0"  # noqa: S104 - bound inside a container; see Dockerfile
+    host: str = "127.0.0.1"  # the container command binds 0.0.0.0 explicitly; see Dockerfile
     port: int = Field(default=8000, ge=1, le=65535)
     log_level: Literal["debug", "info", "warning", "error"] = "info"
     secret_key: SecretStr

@@ -22,7 +22,8 @@ _HTTP_CODES: dict[int, tuple[str, str]] = {
 
 
 async def handle_app_error(_: Request, error: Exception) -> JSONResponse:
-    assert isinstance(error, AppError)  # noqa: S101 - narrows the type for mypy
+    if not isinstance(error, AppError):
+        raise error  # registered for that type only; anything else is a bug
     headers = {"Retry-After": str(error.retry_after)} if isinstance(error, RateLimited) else None
     return error_response(error.status_code, error.code, error.message, error.details, headers)
 
@@ -33,7 +34,8 @@ def _field(location: tuple[int | str, ...]) -> str:
 
 
 async def handle_validation_error(_: Request, error: Exception) -> JSONResponse:
-    assert isinstance(error, RequestValidationError)  # noqa: S101
+    if not isinstance(error, RequestValidationError):
+        raise error  # registered for that type only; anything else is a bug
     problems = error.errors()
     if any(item["type"] == "json_invalid" for item in problems):
         return error_response(400, "MALFORMED_REQUEST", "The request body is not valid JSON.")
@@ -63,7 +65,8 @@ def _allowed_methods(request: Request) -> str | None:
 
 
 async def handle_http_exception(request: Request, error: Exception) -> JSONResponse:
-    assert isinstance(error, StarletteHTTPException)  # noqa: S101
+    if not isinstance(error, StarletteHTTPException):
+        raise error  # registered for that type only; anything else is a bug
     code, message = _HTTP_CODES.get(error.status_code, ("INTERNAL_ERROR", GENERIC_500))
     allow = _allowed_methods(request) if error.status_code == 405 else None
     headers = {"Allow": allow} if allow else None

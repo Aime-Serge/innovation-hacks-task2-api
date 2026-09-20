@@ -70,7 +70,8 @@ async def seed(container: "Container", profile: str, password: str) -> SeedResul
     """Fill the repositories directly, so any status and date can be set for realism."""
     if container.settings.is_production:
         raise RuntimeError("Seeding is refused when APP_ENV=production.")
-    rng = random.Random(42)  # noqa: S311 - deterministic fixtures, not security
+    # Deterministic demo data, not a security use of random.
+    rng = random.Random(42)  # noqa: S311  # nosec B311
     now, today = container.clock.now(), container.clock.today()
     hashed = await container.hasher.hash(password)
     users: list[User] = []

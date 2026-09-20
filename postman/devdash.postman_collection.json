@@ -258,7 +258,7 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+          "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}/status",
           "host": [
             "{{baseUrl}}"
           ],
@@ -266,7 +266,8 @@
             "api",
             "v1",
             "tasks",
-            "{{taskId}}"
+            "{{taskId}}",
+            "status"
           ]
         },
         "body": {
@@ -280,7 +281,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('PATCH /api/v1/tasks/{{taskId}} returns 409', () => pm.response.to.have.status(409));",
+              "pm.test('PATCH /api/v1/tasks/{{taskId}}/status returns 409', () => pm.response.to.have.status(409));",
               "pm.test('error code INVALID_STATUS_TRANSITION', () => pm.expect(pm.response.json().error.code).to.eql('INVALID_STATUS_TRANSITION'));"
             ]
           }
@@ -302,7 +303,7 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}",
+          "raw": "{{baseUrl}}/api/v1/tasks/{{taskId}}/status",
           "host": [
             "{{baseUrl}}"
           ],
@@ -310,7 +311,8 @@
             "api",
             "v1",
             "tasks",
-            "{{taskId}}"
+            "{{taskId}}",
+            "status"
           ]
         },
         "body": {
@@ -324,7 +326,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('PATCH /api/v1/tasks/{{taskId}} returns 200', () => pm.response.to.have.status(200));"
+              "pm.test('PATCH /api/v1/tasks/{{taskId}}/status returns 200', () => pm.response.to.have.status(200));"
             ]
           }
         }

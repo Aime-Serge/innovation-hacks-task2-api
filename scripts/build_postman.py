@@ -103,13 +103,17 @@ def collection() -> Item:
         request(
             "Skipping a status is a 409",
             "PATCH",
-            "/api/v1/tasks/{{taskId}}",
+            "/api/v1/tasks/{{taskId}}/status",
             409,
             {"status": "done"},
             tests=(error_code("INVALID_STATUS_TRANSITION"),),
         ),
         request(
-            "Start the task", "PATCH", "/api/v1/tasks/{{taskId}}", 200, {"status": "in_progress"}
+            "Start the task",
+            "PATCH",
+            "/api/v1/tasks/{{taskId}}/status",
+            200,
+            {"status": "in_progress"},
         ),
         request(
             "List tasks",
