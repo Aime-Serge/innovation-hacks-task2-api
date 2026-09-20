@@ -440,6 +440,7 @@
             ],
             "maxLength": 80,
             "minLength": 1,
+            "pattern": "\\S",
             "title": "Name",
             "type": "string"
           },
@@ -532,18 +533,12 @@
       },
       "ProjectUpdate": {
         "additionalProperties": false,
+        "minProperties": 1,
         "properties": {
           "description": {
-            "anyOf": [
-              {
-                "maxLength": 2000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
           },
           "dueDate": {
             "anyOf": [
@@ -558,27 +553,14 @@
             "title": "Duedate"
           },
           "name": {
-            "anyOf": [
-              {
-                "maxLength": 80,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Name",
+            "type": "string"
           },
           "status": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ProjectStatus"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/ProjectStatus"
           }
         },
         "title": "ProjectUpdate",
@@ -701,6 +683,7 @@
             ],
             "maxLength": 120,
             "minLength": 1,
+            "pattern": "\\S",
             "title": "Title",
             "type": "string"
           }
@@ -816,6 +799,7 @@
       },
       "TaskUpdate": {
         "additionalProperties": false,
+        "minProperties": 1,
         "properties": {
           "assigneeId": {
             "anyOf": [
@@ -830,16 +814,9 @@
             "title": "Assigneeid"
           },
           "description": {
-            "anyOf": [
-              {
-                "maxLength": 4000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
+            "maxLength": 4000,
+            "title": "Description",
+            "type": "string"
           },
           "dueDate": {
             "anyOf": [
@@ -854,27 +831,14 @@
             "title": "Duedate"
           },
           "priority": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Priority"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Priority"
           },
           "title": {
-            "anyOf": [
-              {
-                "maxLength": 120,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Title"
+            "maxLength": 120,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Title",
+            "type": "string"
           }
         },
         "title": "TaskUpdate",
@@ -925,6 +889,7 @@
             "anyOf": [
               {
                 "maxLength": 2048,
+                "pattern": "^https://[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?(:[0-9]{1,5})?([/?#]\\S*)?$",
                 "type": "string"
               },
               {
@@ -937,8 +902,8 @@
             "examples": [
               "ada@example.com"
             ],
-            "format": "email",
             "maxLength": 254,
+            "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
             "title": "Email",
             "type": "string"
           },
@@ -948,6 +913,7 @@
             ],
             "maxLength": 80,
             "minLength": 1,
+            "pattern": "\\S",
             "title": "Name",
             "type": "string"
           },
@@ -1038,11 +1004,13 @@
       },
       "UserUpdate": {
         "additionalProperties": false,
+        "minProperties": 1,
         "properties": {
           "avatarUrl": {
             "anyOf": [
               {
                 "maxLength": 2048,
+                "pattern": "^https://[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?(:[0-9]{1,5})?([/?#]\\S*)?$",
                 "type": "string"
               },
               {
@@ -1052,37 +1020,17 @@
             "title": "Avatarurl"
           },
           "name": {
-            "anyOf": [
-              {
-                "maxLength": 80,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Name",
+            "type": "string"
           },
           "preferences": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Preferences"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Preferences"
           },
           "role": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Role"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "$ref": "#/components/schemas/Role",
             "description": "Only a lead may change a role."
           }
         },
@@ -1591,20 +1539,21 @@
             }
           },
           {
-            "description": "`field` ascending or `-field` descending.",
+            "description": "`field` ascending or `-field` descending. One of: dueDate, name, createdAt.",
             "in": "query",
             "name": "sort",
             "required": false,
             "schema": {
               "anyOf": [
                 {
+                  "pattern": "^-?(dueDate|name|createdAt)$",
                   "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "`field` ascending or `-field` descending.",
+              "description": "`field` ascending or `-field` descending. One of: dueDate, name, createdAt.",
               "title": "Sort"
             }
           },
@@ -2505,20 +2454,21 @@
             }
           },
           {
-            "description": "`field` ascending or `-field` descending.",
+            "description": "`field` ascending or `-field` descending. One of: dueDate, priority, title, createdAt.",
             "in": "query",
             "name": "sort",
             "required": false,
             "schema": {
               "anyOf": [
                 {
+                  "pattern": "^-?(dueDate|priority|title|createdAt)$",
                   "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "`field` ascending or `-field` descending.",
+              "description": "`field` ascending or `-field` descending. One of: dueDate, priority, title, createdAt.",
               "title": "Sort"
             }
           },
@@ -2793,20 +2743,21 @@
             }
           },
           {
-            "description": "`field` ascending or `-field` descending.",
+            "description": "`field` ascending or `-field` descending. One of: dueDate, priority, title, createdAt.",
             "in": "query",
             "name": "sort",
             "required": false,
             "schema": {
               "anyOf": [
                 {
+                  "pattern": "^-?(dueDate|priority|title|createdAt)$",
                   "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "`field` ascending or `-field` descending.",
+              "description": "`field` ascending or `-field` descending. One of: dueDate, priority, title, createdAt.",
               "title": "Sort"
             }
           },
@@ -4051,20 +4002,21 @@
             }
           },
           {
-            "description": "`field` ascending or `-field` descending.",
+            "description": "`field` ascending or `-field` descending. One of: name, email, createdAt.",
             "in": "query",
             "name": "sort",
             "required": false,
             "schema": {
               "anyOf": [
                 {
+                  "pattern": "^-?(name|email|createdAt)$",
                   "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "`field` ascending or `-field` descending.",
+              "description": "`field` ascending or `-field` descending. One of: name, email, createdAt.",
               "title": "Sort"
             }
           },

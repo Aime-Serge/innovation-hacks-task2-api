@@ -1,12 +1,13 @@
 from typing import Annotated, ClassVar
 from uuid import UUID
 
-from pydantic import EmailStr, Field, StringConstraints
+from pydantic import Field, StringConstraints
 
 from app.domain.enums import Role, Theme
 from app.domain.models import User
 from app.schemas.base import (
     ApiModel,
+    Email,
     HttpsUrl,
     Name,
     OutModel,
@@ -14,11 +15,10 @@ from app.schemas.base import (
     SearchText,
     TimestampedOut,
 )
-from app.schemas.common import ListQuery
+from app.schemas.common import ListQuery, sort_param
 
 # Passwords are never trimmed: whitespace is part of the secret.
 Password = Annotated[str, StringConstraints(min_length=12, max_length=128, strip_whitespace=False)]
-Email = Annotated[EmailStr, Field(max_length=254)]
 
 
 class Preferences(OutModel):
@@ -66,5 +66,6 @@ class UserOut(TimestampedOut):
 
 class UserListQuery(ListQuery):
     sort_fields: ClassVar[tuple[str, ...]] = ("name", "email", "createdAt")
+    sort: str | None = sort_param(*sort_fields)
     q: SearchText | None = None
     role: Role | None = None

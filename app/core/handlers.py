@@ -1,5 +1,7 @@
 """Central exception handlers: every error class returns the section 6 envelope (FR-224)."""
 
+import re
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -42,12 +44,29 @@ async def handle_validation_error(_: Request, error: Exception) -> JSONResponse:
     return error_response(422, "VALIDATION_ERROR", "One or more fields are invalid.", details)
 
 
-async def handle_http_exception(_: Request, error: Exception) -> JSONResponse:
+def _allowed_methods(request: Request) -> str | None:
+    """Every method the path supports, across all its routes (Starlette reports only one)."""
+    table: list[tuple[re.Pattern[str], list[str]]] | None = getattr(
+        request.app.state, "allow_table", None
+    )
+    if table is None:
+        paths = request.app.openapi()["paths"]
+        table = [
+            (re.compile("^" + re.sub(r"\{[^}/]+\}", "[^/]+", template) + "$"), list(methods))
+            for template, methods in paths.items()
+        ]
+        request.app.state.allow_table = table
+    for pattern, methods in table:
+        if pattern.match(request.url.path):
+            return ", ".join(sorted({m.upper() for m in methods}))
+    return None
+
+
+async def handle_http_exception(request: Request, error: Exception) -> JSONResponse:
     assert isinstance(error, StarletteHTTPException)  # noqa: S101
     code, message = _HTTP_CODES.get(error.status_code, ("INTERNAL_ERROR", GENERIC_500))
-    headers = (
-        {"Allow": error.headers["Allow"]} if error.headers and "Allow" in error.headers else None
-    )
+    allow = _allowed_methods(request) if error.status_code == 405 else None
+    headers = {"Allow": allow} if allow else None
     return error_response(error.status_code, code, message, None, headers)
 
 

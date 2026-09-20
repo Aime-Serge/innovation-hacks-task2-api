@@ -6,8 +6,8 @@ from pydantic import Field
 
 from app.domain.enums import Priority, TaskStatus
 from app.domain.models import Task
-from app.schemas.base import ApiModel, PatchModel, SearchText, TimestampedOut, Title
-from app.schemas.common import ListQuery
+from app.schemas.base import ApiModel, IsoDate, PatchModel, SearchText, TimestampedOut, Title
+from app.schemas.common import ListQuery, sort_param
 
 
 class TaskCreate(ApiModel):
@@ -15,7 +15,7 @@ class TaskCreate(ApiModel):
     title: Title = Field(examples=["Write the migration plan"])
     description: str = Field(default="", max_length=4000)
     priority: Priority = Priority.MEDIUM
-    due_date: date | None = Field(default=None, examples=["2026-11-15"])
+    due_date: IsoDate | None = Field(default=None, examples=["2026-11-15"])
     assignee_id: UUID | None = None
 
 
@@ -25,7 +25,7 @@ class TaskUpdate(PatchModel):
     title: Title | None = None
     description: str | None = Field(default=None, max_length=4000)
     priority: Priority | None = None
-    due_date: date | None = None
+    due_date: IsoDate | None = None
     assignee_id: UUID | None = None
 
 
@@ -63,6 +63,7 @@ class TaskOut(TimestampedOut):
 
 class TaskListQuery(ListQuery):
     sort_fields: ClassVar[tuple[str, ...]] = ("dueDate", "priority", "title", "createdAt")
+    sort: str | None = sort_param(*sort_fields)
     default_sort: ClassVar[str] = "createdAt"
     q: SearchText | None = None
     status: list[TaskStatus] = Field(default_factory=list)
@@ -70,5 +71,5 @@ class TaskListQuery(ListQuery):
     project_id: list[UUID] = Field(default_factory=list)
     assignee_id: list[UUID] = Field(default_factory=list)
     overdue: bool | None = Field(default=None, description="BR-04: due before today, not done.")
-    due_before: date | None = None
-    due_after: date | None = None
+    due_before: IsoDate | None = None
+    due_after: IsoDate | None = None

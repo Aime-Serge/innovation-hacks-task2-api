@@ -6,8 +6,16 @@ from pydantic import Field
 
 from app.domain.enums import ProjectStatus
 from app.domain.models import Progress, Project
-from app.schemas.base import ApiModel, Name, OutModel, PatchModel, SearchText, TimestampedOut
-from app.schemas.common import ListQuery
+from app.schemas.base import (
+    ApiModel,
+    IsoDate,
+    Name,
+    OutModel,
+    PatchModel,
+    SearchText,
+    TimestampedOut,
+)
+from app.schemas.common import ListQuery, sort_param
 
 
 class ProgressOut(OutModel):
@@ -28,7 +36,7 @@ class ProjectCreate(ApiModel):
     name: Name = Field(examples=["Atlas API Gateway"])
     description: str = Field(default="", max_length=2000)
     status: ProjectStatus = ProjectStatus.PLANNED
-    due_date: date | None = Field(default=None, examples=["2026-12-01"])
+    due_date: IsoDate | None = Field(default=None, examples=["2026-12-01"])
 
 
 class ProjectUpdate(PatchModel):
@@ -37,7 +45,7 @@ class ProjectUpdate(PatchModel):
     name: Name | None = None
     description: str | None = Field(default=None, max_length=2000)
     status: ProjectStatus | None = None
-    due_date: date | None = None
+    due_date: IsoDate | None = None
 
 
 class ProjectOut(TimestampedOut):
@@ -66,6 +74,7 @@ class ProjectOut(TimestampedOut):
 
 class ProjectListQuery(ListQuery):
     sort_fields: ClassVar[tuple[str, ...]] = ("dueDate", "name", "createdAt")
+    sort: str | None = sort_param(*sort_fields)
     q: SearchText | None = None
     status: list[ProjectStatus] = Field(default_factory=list)
     owner_id: UUID | None = None

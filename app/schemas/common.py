@@ -1,4 +1,4 @@
-from typing import Annotated, ClassVar, Literal
+from typing import Annotated, Any, ClassVar, Literal
 
 from fastapi import Query
 from pydantic import Field, field_validator
@@ -27,6 +27,15 @@ class PageOut[T](OutModel):
     page: int = Field(ge=1, examples=[1])
     page_size: int = Field(ge=1, le=100, examples=[20])
     total: int = Field(ge=0, examples=[134])
+
+
+def sort_param(*fields: str) -> Any:
+    """The `sort` query parameter, with the allowed fields stated in the schema."""
+    return Field(
+        default=None,
+        pattern="^-?(" + "|".join(fields) + ")$",
+        description="`field` ascending or `-field` descending. One of: " + ", ".join(fields) + ".",
+    )
 
 
 class ListQuery(ApiModel):
