@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import health
+from app.api import health, landing
 from app.api.v1 import api_router
 from app.container import Container, build_container
 from app.core.clock import Clock, IdFactory
@@ -73,6 +73,7 @@ def create_app(
     )
     app.state.container = container
     register_handlers(app)
+    app.include_router(landing.router)
     app.include_router(health.router)
     app.include_router(api_router)
 

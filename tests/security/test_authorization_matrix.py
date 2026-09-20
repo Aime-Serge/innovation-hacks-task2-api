@@ -7,6 +7,7 @@ import pytest
 from tests.conftest import DEV, LEAD, OTHER, Env, error_code, make_project, make_task
 
 PUBLIC = {
+    ("get", "/"),
     ("post", "/api/v1/auth/login"),
     ("post", "/api/v1/users"),
     ("get", "/healthz"),

@@ -43,6 +43,6 @@ def gaps(spec: dict[str, Any]) -> tuple[int, list[str]]:
             label = f"{method.upper()} {template}"
             if not any(code < 400 for code in statuses):
                 missing.append(f"{label}: no success test")
-            if template != "/healthz" and not any(code >= 400 for code in statuses):
+            if template not in ("/", "/healthz") and not any(code >= 400 for code in statuses):
                 missing.append(f"{label}: no failure test")
     return checked, missing
