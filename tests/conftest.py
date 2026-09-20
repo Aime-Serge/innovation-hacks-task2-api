@@ -69,15 +69,16 @@ class Env:
         )
 
 
-async def build_env(profile: str = "empty", **settings: Any) -> AsyncIterator[Env]:
+async def build_env(profile: str | None = "empty", **settings: Any) -> AsyncIterator[Env]:
     clock = FakeClock()
     app = create_app(make_settings(**settings), clock=clock)
     container: Container = app.state.container
-    await seed(container, profile, PASSWORD)
+    if profile is not None:
+        await seed(container, profile, PASSWORD)
     transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         env = Env(app, container, clock, client, {})
-        for email in (LEAD, DEV, OTHER):
+        for email in (LEAD, DEV, OTHER) if profile is not None else ():
             response = await env.login(email)
             env.tokens[email] = response.json()["accessToken"]
         yield env

@@ -166,22 +166,35 @@ class BodyGuardMiddleware:
             )
             return
         seen = 0
+        rejected = False
 
         async def counted() -> Message:
-            nonlocal seen
+            nonlocal seen, rejected
             message = await receive()
             if message["type"] == "http.request":
                 seen += len(message.get("body", b""))
-                if seen > self.max_bytes:
+                if seen > self.max_bytes and not rejected:
+                    # Answer now: the framework would turn this exception into a 400 (ADR-219).
+                    rejected = True
+                    await self._reject(
+                        413,
+                        "PAYLOAD_TOO_LARGE",
+                        "The request body is too large.",
+                        scope,
+                        receive,
+                        send,
+                    )
                     raise _BodyTooLarge
             return message
 
+        async def guarded_send(message: Message) -> None:
+            if not rejected:
+                await send(message)
+
         try:
-            await self.app(scope, counted, send)
+            await self.app(scope, counted, guarded_send)
         except _BodyTooLarge:
-            await self._reject(
-                413, "PAYLOAD_TOO_LARGE", "The request body is too large.", scope, receive, send
-            )
+            return
 
     @staticmethod
     async def _reject(

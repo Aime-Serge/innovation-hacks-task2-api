@@ -28,7 +28,12 @@ async def test_tc210_create_project_returns_201_location_and_owner(env: Env) -> 
 
 
 async def test_tc211_client_cannot_set_owner_or_progress(env: Env) -> None:
-    for extra in ({"ownerId": str(uuid4())}, {"progress": {}}, {"id": str(uuid4())}):
+    forbidden: list[dict[str, Any]] = [
+        {"ownerId": str(uuid4())},
+        {"progress": {}},
+        {"id": str(uuid4())},
+    ]
+    for extra in forbidden:
         r = await env.client.post(
             "/api/v1/projects", json={"name": "X", **extra}, headers=env.auth(DEV)
         )

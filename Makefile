@@ -22,7 +22,7 @@ format:
 	$(RUN) ruff format .
 
 typecheck:
-	$(RUN) mypy --strict app scripts
+	$(RUN) mypy --strict app scripts tests
 
 layers:
 	$(RUN) lint-imports
