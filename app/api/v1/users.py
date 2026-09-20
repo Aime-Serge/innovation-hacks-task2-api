@@ -5,8 +5,8 @@ from fastapi import APIRouter, Query, Request, Response
 from app.api.deps import ContainerDep, CurrentActor, CurrentUser, UserId, enforce_rate_limit
 from app.api.docs import errors
 from app.domain.enums import Theme
+from app.domain.queries import UserQuery
 from app.domain.unset import UNSET
-from app.repositories.base import UserQuery
 from app.schemas.common import PageOut
 from app.schemas.users import UserCreate, UserListQuery, UserOut, UserUpdate
 from app.services.users import UserChanges

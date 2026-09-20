@@ -4,65 +4,17 @@ Query objects carry filters, sort and pagination, so services never build
 storage-specific queries and a SQL implementation can honour the same contract.
 """
 
-from dataclasses import dataclass, field
-from datetime import date
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.enums import Priority, ProjectStatus, Role, TaskStatus
 from app.domain.models import Activity, Progress, Project, Task, User
-
-
-@dataclass(frozen=True)
-class Page[T]:
-    items: list[T]
-    page: int
-    page_size: int
-    total: int
-
-
-@dataclass(frozen=True)
-class UserQuery:
-    q: str | None = None
-    role: Role | None = None
-    sort: str = "createdAt"
-    descending: bool = False
-    page: int = 1
-    page_size: int = 20
-
-
-@dataclass(frozen=True)
-class ProjectQuery:
-    q: str | None = None
-    statuses: list[ProjectStatus] = field(default_factory=list)
-    owner_id: UUID | None = None
-    sort: str = "createdAt"
-    descending: bool = False
-    page: int = 1
-    page_size: int = 20
-
-
-@dataclass(frozen=True)
-class TaskQuery:
-    q: str | None = None
-    statuses: list[TaskStatus] = field(default_factory=list)
-    priorities: list[Priority] = field(default_factory=list)
-    project_ids: list[UUID] = field(default_factory=list)
-    assignee_ids: list[UUID] = field(default_factory=list)
-    overdue: bool | None = None
-    today: date | None = None
-    due_before: date | None = None
-    due_after: date | None = None
-    sort: str = "createdAt"
-    descending: bool = False
-    page: int = 1
-    page_size: int = 20
-
-
-@dataclass(frozen=True)
-class ActivityQuery:
-    page: int = 1
-    page_size: int = 10
+from app.domain.queries import (
+    ActivityQuery,
+    Page,
+    ProjectQuery,
+    TaskQuery,
+    UserQuery,
+)
 
 
 class UserRepository(Protocol):
@@ -97,3 +49,16 @@ class TaskRepository(Protocol):
 class ActivityRepository(Protocol):
     async def add(self, activity: Activity) -> Activity: ...
     async def list(self, query: ActivityQuery) -> Page[Activity]: ...
+
+
+__all__ = [
+    "ActivityQuery",
+    "ActivityRepository",
+    "Page",
+    "ProjectQuery",
+    "ProjectRepository",
+    "TaskQuery",
+    "TaskRepository",
+    "UserQuery",
+    "UserRepository",
+]

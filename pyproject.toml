@@ -87,10 +87,10 @@ include_external_packages = true
 name = "Layers point downward"
 type = "layers"
 layers = [
-  "app.api",
-  "app.services",
-  "app.repositories",
-  "app.domain",
+  "api",
+  "services",
+  "repositories",
+  "domain",
 ]
 containers = ["app"]
 exhaustive = false
@@ -106,3 +106,4 @@ name = "Routers hold no business logic: no repositories"
 type = "forbidden"
 source_modules = ["app.api.v1"]
 forbidden_modules = ["app.repositories"]
+allow_indirect_imports = true

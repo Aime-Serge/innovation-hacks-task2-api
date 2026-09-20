@@ -5,8 +5,8 @@ from fastapi import APIRouter, Query, Response
 
 from app.api.deps import ContainerDep, CurrentActor, CurrentUser, TaskId
 from app.api.docs import errors
+from app.domain.queries import TaskQuery
 from app.domain.unset import UNSET
-from app.repositories.base import TaskQuery
 from app.schemas.common import PageOut
 from app.schemas.tasks import StatusChange, TaskCreate, TaskListQuery, TaskOut, TaskUpdate
 from app.services.tasks import NewTask, TaskChanges

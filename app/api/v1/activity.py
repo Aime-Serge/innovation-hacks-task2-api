@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from app.api.deps import ContainerDep, CurrentUser
 from app.api.docs import errors
-from app.repositories.base import ActivityQuery
+from app.domain.queries import ActivityQuery
 from app.schemas.common import PageOut
 from app.schemas.misc import ActivityOut, ActivityParams
 
