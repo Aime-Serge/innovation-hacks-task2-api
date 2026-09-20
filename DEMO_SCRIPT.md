@@ -1,31 +1,68 @@
-# Demo Video Script
+# Demo script: Task 2 API (about 4 minutes)
 
-Target length: **2:00–2:30** (within the guide's 2–5 minute range —
-this is a backend-only task, so there's no UI to walk through beyond
-Swagger UI itself).
+Record the screen with the terminal on the left and the browser on the right. Say the line in
+quotes, then do the action.
 
-Record against a locally running server (`uvicorn app.main:app --reload`)
-using the Swagger UI at `http://localhost:8000/docs` — it's a real,
-executable client, not a slide, so every request in this script should
-actually be sent and its real response shown.
+## Set up before recording
 
-| Time | Beat | Say | Show |
-| --- | --- | --- | --- |
-| 0:00–0:15 | Cold open | "This is the Users, Projects & Tasks API — the backend Task 1's dashboard and Task 4's platform will consume. Built with FastAPI and Pydantic v2, in-memory storage for this task, real database comes in Task 3." | Swagger UI overview at `/docs`, scrolled to show all three route groups. |
-| 0:15–0:45 | Create a user | "Passwords are hashed with PBKDF2 before they're ever stored — they're never returned in any response." | Expand `POST /users`, "Try it out", fill in a real name/email/password, Execute. Point at the response body: no `password` or `password_hash` field. |
-| 0:45–1:05 | Validation & conflict | "Creating a second user with the same email is a 409, not a 500 — and an invalid payload is a clean 422 with field-level detail." | POST the same email again (409); then POST with `"email": "not-an-email"` (422), point at the `error.code` field in both. |
-| 1:05–1:35 | Projects and tasks, relationships enforced | "A project has to reference a real user — try a random UUID as owner_id and it's a 404, not a crash. Same rule for a task's project_id." | `POST /projects` with the real user's id (201); then with a random UUID as `owner_id` (404). `POST /tasks` against the real project, then the dedicated `PATCH /tasks/{id}/status` endpoint to move it to `done`. |
-| 1:35–2:00 | Centralized errors, even framework-level ones | "Every error response shares one shape — `{"error": {code, message, details}}` — and that's true even for errors FastAPI raises itself, like hitting a route that doesn't exist." | Hit a nonexistent path directly in the browser or via curl in a terminal split, e.g. `GET /nope` — show the wrapped `not_found` shape, not FastAPI's default `{"detail": ...}`. |
-| 2:00–2:20 | Close | "41 tests, all passing against this exact behavior — full source, README, and API docs are in the repo linked below." | Quick cut to a passing `pytest -v` run, then back to the repo's GitHub page. |
+```bash
+uv sync --frozen
+export SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')
+SEED_PASSWORD='Demo-Password-123' SEED_PROFILE=default uv run uvicorn app.main:create_app --factory
+```
 
-## Notes for whoever records this
+Open http://127.0.0.1:8000/docs in the browser. The demo password lives only in your shell.
 
-- No auth on this task (deliberate — Task 4 adds it) and no database
-  (deliberate — Task 3 adds it), so don't apologize for either on
-  camera; the README explains both as intentional scope.
-- The `error.code` field (not just the status code) is worth pointing
-  at explicitly on screen — it's the detail most likely to get missed
-  in a quick read of the response body.
-- If recording in one take gets awkward around the 409/422 beat,
-  it's fine to have both request bodies pre-typed in separate tabs
-  before hitting record, so the video doesn't sit on typing.
+## 1. The contract (40 s)
+
+"This is the Task 2 API, built to an engineering standards pack. The interactive docs are generated
+from the code, and a test fails the build if `docs/openapi.json` drifts from them."
+
+- Scroll the operation list: Authentication, Users, Projects, Tasks, Dashboard, Health.
+- Open **POST /api/v1/tasks**. Point at the request example, the response example and the list of
+  documented errors (400, 401, 403, 409, 413, 415, 422, 500).
+
+## 2. Authentication (40 s)
+
+"No default credentials. Log in as the seeded lead."
+
+- **POST /api/v1/auth/login** with `amara.diallo@example.com` and the demo password. Copy the token,
+  click **Authorize**, paste it.
+- Try a wrong password, then an unknown email. "Same 401, same message, so it cannot be used to
+  find out which accounts exist."
+- **GET /api/v1/auth/me** shows the lead.
+
+## 3. A task through its workflow (75 s)
+
+"Business rules are enforced on the server, not the client."
+
+- **POST /api/v1/projects**, then **POST /api/v1/tasks**. Point at `201` and the `Location` header.
+- **PATCH /api/v1/tasks/{taskId}/status** with `done` straight from `todo`. Show the `409
+  INVALID_STATUS_TRANSITION` and the `allowedStatuses` detail.
+- Move it `in_progress`, `in_review`, `done`. Show `completedAt` appear. Move it back to
+  `in_progress` and show `completedAt` clear.
+- **GET /api/v1/projects/{projectId}**: the progress numbers changed.
+
+## 4. Permissions and validation (45 s)
+
+- Register a new account, log in as it, and try **DELETE /api/v1/users/{userId}**. `403 FORBIDDEN`.
+- **POST /api/v1/projects** with `{"name": "  ", "ownerId": "x"}`. `422` with a field list, and
+  "clients can never set the owner".
+- **GET /api/v1/tasks?pageSize=500**. `422`, and the error shows `requestId`.
+
+## 5. The gate (45 s)
+
+"Everything I just showed is a test."
+
+In the terminal run `make test` and show the coverage line and the endpoint-coverage line, then
+`make layers` ("the architecture rules are enforced by a tool"). Mention Schemathesis, Newman, Locust.
+
+## Say honestly at the end (15 s)
+
+"State is in memory and resets on restart, and the rate limiter is per process. Task 3 adds the
+database."
+
+## Before you upload
+
+- [ ] The recording shows no real password or token (blur the Authorize dialog if in doubt)
+- [ ] The README has the demo link, and `docs/openapi.json` is committed

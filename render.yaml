@@ -1,26 +1,28 @@
 services:
   - type: web
     name: ih-task2-api
-    runtime: python
+    runtime: docker
     plan: free
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-    healthCheckPath: /health
+    healthCheckPath: /healthz
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.14.3
+      # Demo deployment (ADR-221): the pack refuses seeding when APP_ENV=production, and
+      # this in-memory service has no other way to create the first lead. Switch to
+      # production and drop SEED_PROFILE when real persistence arrives in Task 3.
       - key: APP_ENV
-        value: production
+        value: development
       - key: LOG_LEVEL
         value: info
-      # Storage here is an in-process dict, so this service must run as a
-      # single worker or each worker would hold its own separate copy of
-      # the data. Data also resets on every restart/redeploy — expected
-      # for this task (Task 3 adds real persistence).
+      - key: DOCS_ENABLED
+        value: "true"
+      - key: SEED_PROFILE
+        value: default
+      # In-process storage: one worker only, and data resets on every restart.
       - key: WEB_CONCURRENCY
         value: "1"
-      # Comma-separated allowed browser origins. Set in the Render
-      # dashboard (not committed) to wherever a frontend will call this
-      # from; leave the placeholder if nothing calls it from a browser.
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SEED_PASSWORD
+        sync: false
+      # Comma-separated browser origins (no wildcard). Set in the Render dashboard.
       - key: CORS_ORIGINS
         sync: false

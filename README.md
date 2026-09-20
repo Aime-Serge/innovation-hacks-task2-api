@@ -1,196 +1,215 @@
-# Users, Projects & Tasks API
+# DevDash API: users, projects and tasks
 
-Task 2 of the Innovation Hacks Full Stack Development Internship — a REST API for managing users, projects, and tasks, built with **Python + FastAPI**. This is the backend that Task 1's dashboard and Task 4's platform will consume.
+Task 2 of the Innovation Hacks Full Stack Development Internship: the backend for the Task 1
+dashboard, built with **FastAPI** to the _Users, Projects & Tasks API Engineering Standards Pack
+(Task 2)_. Twenty-three documented operations under `/api/v1`, one error envelope, bearer-token
+authentication, business rules enforced on the server, and a test gate that fails the build when
+the code, the tests or the OpenAPI document drift apart.
 
-## Technology Stack
+![Python 3.12](https://img.shields.io/badge/python-3.12-3776ab) ![mypy strict](https://img.shields.io/badge/mypy-strict-2a6db2) ![FastAPI](https://img.shields.io/badge/FastAPI-Pydantic_v2-009688)
 
-- **Python 3.14**
-- **FastAPI** — routing, request/response validation, OpenAPI generation
-- **Pydantic v2** / **pydantic-settings** — data validation and environment-based configuration
-- **Uvicorn** — ASGI server
-- **pytest** + **httpx** (via FastAPI's `TestClient`) — test suite
+- **Live API:** _add the Render URL after deploying (see [Deploying](#deploying))_
+- **Interactive docs:** `/docs` (Swagger UI), on in development, off in production
+- **Demo video:** _add the link after recording, see [DEMO_SCRIPT.md](DEMO_SCRIPT.md)_
+- **Standards:** [docs/standards/](docs/standards/) · **Decisions:** [docs/adr/](docs/adr/) ·
+  **Task 1 compatibility:** [docs/compatibility-task1.md](docs/compatibility-task1.md)
 
-## Features
+## Run it (3 commands)
 
-- User management: create, list, get, update, delete
-- Project management: create, list (with optional `owner_id` filter), get by id
-- Task management: create, list (with optional `project_id`/`status` filters), get by id, update, delete
-- Dedicated task status-transition endpoint (`todo` / `in-progress` / `done`)
-- Centralized error handling — every error response shares one JSON shape,
-  including framework-raised errors (unmatched route, wrong HTTP method),
-  not just application-raised ones
-- Input validation on every write operation via Pydantic models
-- CORS configured for the frontend origin (`CORS_ORIGINS`)
-- Environment-variable-driven configuration, no hardcoded secrets
-- Auto-generated interactive API docs at `/docs` and `/redoc`
-
-## Architecture Notes
-
-- **Storage**: in-memory repositories (`app/repositories/`) behind a fixed interface. Task 3 will swap these for a real database-backed implementation without changing any router code.
-- **Relationships**: `Project.owner_id` references a `User`; `Task.project_id` references a `Project`. Creating a project/task with a non-existent owner/project returns `404`. Deleting a user cascades to that user's owned projects and each project's own tasks, the same way a real database's `ON DELETE CASCADE` would — there's no `DELETE /projects` endpoint, so a project left behind here would have an `owner_id` that could never resolve again.
-- **Auth-readiness**: each router is registered with `dependencies=[]`. Task 4 adds the auth dependency at the router level, with no changes to individual handlers.
-- **No authentication in Task 2**: user passwords are stored hashed (PBKDF2-HMAC-SHA256, salted) for forward compatibility, but there is no login/token endpoint — that's Task 4's explicit "Authentication" requirement.
-
-## Known Gaps / Assumptions
-
-- **No pagination**: `GET /users`, `GET /projects`, and `GET /tasks` return every matching record with no `limit`/`offset`. Fine at this task's scale (an in-memory store with no seed data), but a real deployment would need it.
-- **No rate limiting**: combined with no auth, nothing currently prevents a client from hammering any endpoint, including `POST /users`, which does 260k PBKDF2 iterations per call.
-- **Single-process in-memory store**: the three repositories are plain, unlocked `dict`s shared as module-level singletons — correct for a single-worker dev process, but not safe for multiple workers or true concurrent access. Task 3 replaces this with a real database.
-
-## Getting Started
-
-### 1. Create an isolated virtual environment
+You need [uv](https://docs.astral.sh/uv/) (it installs Python 3.12 for you).
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+uv sync --frozen                                                                 # 1. install
+export SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')  # 2. configure
+SEED_PROFILE=default uv run uvicorn app.main:create_app --factory --reload       # 3. run, with demo data
 ```
 
-### 2. Install dependencies
+Open http://127.0.0.1:8000/docs. With `SEED_PROFILE=default` and no `SEED_PASSWORD`, a random
+password for the seeded accounts is printed once to the console at startup (the lead is
+`amara.diallo@example.com`). Nothing has a default credential. To keep settings in a file instead,
+copy `.env.example` to `.env` and fill in `SECRET_KEY`.
+
+## Configuration
+
+Every setting comes from the environment and is validated at startup. A missing or invalid value
+stops the app and names the variable. `.env.example` is the source of truth and a test fails if a
+setting is missing from it.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `APP_ENV` | `development` | `development`, `test` or `production`. Production turns Swagger UI off and adds HSTS. |
+| `HOST` | `127.0.0.1` | Bind address. The Docker image binds `0.0.0.0`. |
+| `PORT` | `8000` | Port. |
+| `LOG_LEVEL` | `info` | `debug`, `info`, `warning` or `error`. |
+| `SECRET_KEY` | required | JWT signing key, at least 32 bytes. |
+| `JWT_ISSUER` | `devdash-api` | `iss` claim, checked on every request. |
+| `JWT_AUDIENCE` | `devdash-clients` | `aud` claim, checked on every request. |
+| `ACCESS_TOKEN_TTL_SECONDS` | `900` | Token lifetime (60 to 86400). |
+| `CORS_ORIGINS` | empty | Comma-separated allowed origins. A wildcard is refused. |
+| `DOCS_ENABLED` | empty | Empty means on in development, off in production. |
+| `MAX_BODY_BYTES` | `1048576` | Request body limit (413 above it). |
+| `REQUEST_TIMEOUT_SECONDS` | `30` | Per-request timeout. |
+| `RATE_LIMIT_ATTEMPTS` | `5` | Login and registration attempts allowed per window. |
+| `RATE_LIMIT_WINDOW_SECONDS` | `60` | The window. |
+| `ARGON2_TIME_COST` | `3` | argon2id time cost. Lower only in tests. |
+| `ARGON2_MEMORY_KIB` | `65536` | argon2id memory cost. Lower only in tests. |
+| `SEED_PROFILE` | `none` | `none`, `default`, `empty` or `large`. Refused when `APP_ENV=production`. |
+| `SEED_PASSWORD` | empty | Password for seeded accounts; empty prints a random one. |
+
+## Try it: authentication walkthrough
 
 ```bash
-pip install -r requirements.txt
+BASE=http://127.0.0.1:8000
+# 1. Register (public). New accounts are always developers.
+curl -s -X POST $BASE/api/v1/users -H 'Content-Type: application/json' \
+  -d '{"name":"Ada Lovelace","email":"ada@example.com","password":"correct-horse-battery"}'
+
+# 2. Log in and keep the token.
+TOKEN=$(curl -s -X POST $BASE/api/v1/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"ada@example.com","password":"correct-horse-battery"}' | python3 -c 'import sys,json; print(json.load(sys.stdin)["accessToken"])')
+
+# 3. Who am I?
+curl -s $BASE/api/v1/auth/me -H "Authorization: Bearer $TOKEN"
 ```
 
-### 3. Configure environment variables
+Tokens last 15 minutes. An unknown email and a wrong password give the same `401
+INVALID_CREDENTIALS`. Login and registration are rate limited (429 with `Retry-After`).
+
+## Endpoints
+
+Every route except registration, login and the health checks needs `Authorization: Bearer <token>`.
+JSON is camelCase, ids are UUIDs, dates are ISO 8601, and lists take `page`, `pageSize` (1 to 100)
+and `sort` (`field`, or `-field` for descending).
+
+| Method | Path | Who | What |
+| --- | --- | --- | --- |
+| POST | `/api/v1/auth/login` | public | Exchange credentials for a token |
+| GET | `/api/v1/auth/me` | any user | The current user |
+| POST | `/api/v1/users` | public | Register (201 + `Location`) |
+| GET | `/api/v1/users` | any user | List, search `q`, filter `role` |
+| GET | `/api/v1/users/{userId}` | any user | One user |
+| PATCH | `/api/v1/users/{userId}` | self or lead | Name, avatar, preferences; role by a lead only |
+| DELETE | `/api/v1/users/{userId}` | lead | 204; 409 for the last lead or an owner of projects |
+| GET | `/api/v1/projects` | any user | List, filter `status`, `ownerId`, search `q` |
+| POST | `/api/v1/projects` | any user | Create; you become the owner |
+| GET | `/api/v1/projects/{projectId}` | any user | One project with progress |
+| PATCH | `/api/v1/projects/{projectId}` | owner or lead | Partial update |
+| DELETE | `/api/v1/projects/{projectId}` | owner or lead | 204; 409 while it has tasks |
+| GET | `/api/v1/projects/{projectId}/tasks` | any user | The project's tasks, same filters as `/tasks` |
+| GET | `/api/v1/tasks` | any user | Filter `status`, `priority`, `projectId`, `assigneeId`, `overdue`, `dueBefore`, `dueAfter`, `q` |
+| POST | `/api/v1/tasks` | project owner or lead | Create (status starts as `todo`) |
+| GET | `/api/v1/tasks/{taskId}` | any user | One task |
+| PATCH | `/api/v1/tasks/{taskId}` | owner, assignee or lead | Edit fields (not status) |
+| PATCH | `/api/v1/tasks/{taskId}/status` | owner, assignee or lead | Move through the workflow |
+| DELETE | `/api/v1/tasks/{taskId}` | owner or lead | 204 |
+| GET | `/api/v1/activity` | any user | Recent activity, newest first; `limit` is the page size |
+| GET | `/api/v1/dashboard/summary` | any user | Counts, completion rate and deadlines in the next 7 days |
+| GET | `/healthz` | public | Liveness |
+| GET | `/readyz` | public | Readiness (503 when a dependency is down) |
+
+Task status workflow: `todo` → `in_progress` → `in_review` → `done`, with `in_review` → `in_progress`
+and `done` → `in_progress` to reopen. Anything else is `409 INVALID_STATUS_TRANSITION`, and the
+error lists the statuses that are allowed.
 
 ```bash
-cp .env.example .env
+PROJECT=$(curl -s -X POST $BASE/api/v1/projects -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"name":"Atlas API Gateway","dueDate":"2026-12-01"}')
+PID=$(echo "$PROJECT" | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')
+
+TASK=$(curl -s -X POST $BASE/api/v1/tasks -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d "{\"projectId\":\"$PID\",\"title\":\"Write the migration plan\",\"priority\":\"high\"}")
+TID=$(echo "$TASK" | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')
+
+curl -s -X PATCH $BASE/api/v1/tasks/$TID/status -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"status":"in_progress"}'
+curl -s "$BASE/api/v1/tasks?status=in_progress&sort=-dueDate&pageSize=5" -H "Authorization: Bearer $TOKEN"
+curl -s $BASE/api/v1/dashboard/summary -H "Authorization: Bearer $TOKEN"
 ```
 
-`.env` is gitignored — never commit real secrets. See [Environment Variables](#environment-variables) below for what each key means.
+## Errors
 
-### 4. Run the server
-
-```bash
-uvicorn app.main:app --reload
-```
-
-The API is now available at `http://localhost:8000`. Interactive docs:
-
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-### 5. Run the tests
-
-```bash
-pytest -v
-```
-
-## Environment Variables
-
-| Variable | Purpose | Status |
-|---|---|---|
-| `APP_ENV` | `development` / `production` flag | active |
-| `HOST` | Bind address | active |
-| `PORT` | Bind port | active |
-| `LOG_LEVEL` | Logging verbosity | active |
-| `CORS_ORIGINS` | Comma-separated allowed frontend origins | active |
-| `DATABASE_URL` | Database connection string | placeholder — unused until Task 3 |
-| `SECRET_KEY` | Auth signing key | placeholder — unused until Task 4 |
-
-See `.env.example` for the full template (keys only, no real values).
-
-## Route Table
-
-All error responses share this shape:
+Every error, including framework errors (unknown route, wrong method, bad JSON), has one shape:
 
 ```json
-{"error": {"code": "not_found", "message": "...", "details": null}}
+{ "error": { "code": "VALIDATION_ERROR", "message": "One or more fields are invalid.",
+             "details": [{ "field": "title", "message": "Must be between 1 and 120 characters." }],
+             "requestId": "8f0c2e4a-3b1d-4f6e-9a57-2d7c1e9b5a10" } }
 ```
 
-### Users
+`requestId` matches the `X-Request-ID` response header (send your own to trace a call). Stack
+traces and internals never appear in a response.
 
-| Method | Path | Purpose | Success | Failure |
-|---|---|---|---|---|
-| POST | `/users` | Create a user | 201 | 422, 409 |
-| GET | `/users` | List users | 200 | — |
-| GET | `/users/{user_id}` | Get user by id | 200 | 404 |
-| PATCH | `/users/{user_id}` | Partially update a user | 200 | 404, 422, 409 |
-| DELETE | `/users/{user_id}` | Delete a user (cascades to their owned projects and tasks) | 204 | 404 |
+| Status | Code | When |
+| --- | --- | --- |
+| 400 | `MALFORMED_REQUEST` | The body is not valid JSON |
+| 401 | `UNAUTHENTICATED` | Missing, malformed, expired or forged token |
+| 401 | `INVALID_CREDENTIALS` | Wrong email or password (identical for both) |
+| 403 | `FORBIDDEN` | Authenticated but not allowed |
+| 404 | `NOT_FOUND` | Unknown id or route |
+| 405 | `METHOD_NOT_ALLOWED` | Wrong method; `Allow` lists the right ones |
+| 409 | `EMAIL_ALREADY_EXISTS` | Registration with an address already in use |
+| 409 | `INVALID_STATUS_TRANSITION` | The workflow forbids the move |
+| 409 | `PROJECT_NOT_EMPTY` | Deleting a project that has tasks |
+| 409 | `PROJECT_CLOSED` | Adding a task to a completed project |
+| 409 | `USER_OWNS_PROJECTS` | Deleting a user who owns projects |
+| 409 | `LAST_LEAD` | Deleting or demoting the last lead |
+| 413 | `PAYLOAD_TOO_LARGE` | Body over 1 MB |
+| 415 | `UNSUPPORTED_MEDIA_TYPE` | Body is not `application/json` |
+| 422 | `VALIDATION_ERROR` | Bad fields, unknown fields, bad query, unknown referenced id |
+| 429 | `RATE_LIMITED` | Too many login or registration attempts; see `Retry-After` |
+| 500 | `INTERNAL_ERROR` | Unexpected; generic message, details are in the server log |
+| 503 | `SERVICE_UNAVAILABLE` | `/readyz` when a dependency is down |
 
-### Projects
+## Architecture
 
-| Method | Path | Purpose | Success | Failure |
-|---|---|---|---|---|
-| POST | `/projects` | Create a project | 201 | 422, 404 (owner not found) |
-| GET | `/projects` | List projects (optional `?owner_id=`) | 200 | — |
-| GET | `/projects/{project_id}` | Get project by id | 200 | 404 |
+```
+app/api        routers: parse, call a service, shape the response. No business rules.
+app/services   business rules and authorization. Raise AppError subclasses; never import FastAPI.
+app/repositories  async Protocols + in-memory implementations behind them.
+app/domain     entities, enums, pure rules, query objects.
+app/core       settings, errors, logging, middleware, security, clock, rate limiter.
+```
 
-### Tasks
+The layer rules are enforced by `import-linter` (`make layers`), not by convention. The clock and
+id factory are injected, so tests control time. Swapping the in-memory store for a database means
+writing a new set of repositories; a contract test suite runs against every implementation.
 
-| Method | Path | Purpose | Success | Failure |
-|---|---|---|---|---|
-| POST | `/tasks` | Create a task | 201 | 422, 404 (project not found) |
-| GET | `/tasks` | List tasks (optional `?project_id=`, `?status=`) | 200 | — |
-| GET | `/tasks/{task_id}` | Get task by id | 200 | 404 |
-| PATCH | `/tasks/{task_id}` | Update task title/description | 200 | 404, 422 |
-| PATCH | `/tasks/{task_id}/status` | Transition task status (`todo`/`in-progress`/`done`) | 200 | 404, 422 |
-| DELETE | `/tasks/{task_id}` | Delete a task | 204 | 404 |
+## The quality gate
 
-### Health
+```bash
+make gate        # everything below, stops at the first failure
+```
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/health` | Service health check |
-
-## Status Code Policy
-
-- **200** — successful GET/PATCH
-- **201** — successful POST (resource created)
-- **204** — successful DELETE (no body)
-- **404** — path id not found, or a body field referencing another resource (`owner_id`, `project_id`) doesn't exist
-- **409** — conflict (duplicate user email)
-- **422** — Pydantic validation failure (missing/invalid field, bad enum value) — FastAPI's native behavior, kept as-is rather than remapped to 400
-- **500** — unhandled server error, generic message only; full traceback logged server-side
-
-## Deployment
-
-Deploys to **Render** (free tier) from the included [`render.yaml`](render.yaml):
-
-1. render.com → **New → Blueprint** → select this repo. It reads
-   `render.yaml` and creates the `ih-task2-api` web service.
-2. When prompted for `CORS_ORIGINS`, enter the origin of whatever will call
-   this API from a browser (e.g. your Task 1 Vercel URL), or a placeholder
-   like `http://localhost:3000` if nothing does yet.
-3. Wait for the build, then open `https://<your-service>.onrender.com/docs`
-   for the live Swagger UI, or `/health` for a quick check.
-
-Things to know:
-
-- **Data is not persistent.** Storage is an in-process dict, so everything
-  resets whenever the service restarts, redeploys, or wakes from Render's
-  free-tier sleep. That's this task's design (Task 3 adds a real
-  database), not a deployment fault. The blueprint pins
-  `WEB_CONCURRENCY=1` because with several workers each would hold its own
-  separate copy of the data.
-- The free tier sleeps after inactivity; the first request afterwards
-  takes ~30s.
-
-## Screenshots
-
-All captured against the real running app — Swagger UI's own "Try it
-out" hitting a live server, not mocked examples.
-
-| Swagger UI overview |
-| --- |
-| ![Swagger UI overview](docs/screenshots/01-swagger-overview.png) |
-
-| `POST /users` expanded | Real request/response via "Try it out" |
+| Target | What it checks |
 | --- | --- |
-| ![Create user expanded](docs/screenshots/02-create-user-expanded.png) | ![Create user response](docs/screenshots/03-create-user-response.png) |
+| `make lint` | `ruff check` and `ruff format --check` (complexity at most 10) |
+| `make typecheck` | `mypy --strict` on `app`, `scripts` and `tests` |
+| `make layers` | import-linter contracts |
+| `make test` | pytest with coverage (threshold 90%) and the endpoint-coverage gate |
+| `make spec-check` | `docs/openapi.json` equals what the app generates |
+| `make spec-diff` | no breaking change against `origin/main` |
+| `make contract` | Schemathesis over every operation |
+| `make security` | bandit and pip-audit |
+| `make postman` | the Postman collection under Newman |
+| `make load` | Locust on 500 tasks, p95 thresholds |
+| `make docker` | the image builds |
 
-## Demo
+After changing an endpoint, run `make export-spec` and commit `docs/openapi.json`; CI fails if it is
+stale. `make secrets` runs gitleaks if it is installed (CI always runs it).
 
-- **Live API**: https://ih-task2-api.onrender.com
-  ([Swagger UI](https://ih-task2-api.onrender.com/docs),
-  [health check](https://ih-task2-api.onrender.com/health)). Hosted on
-  Render's free tier, so the first request after a period of inactivity
-  can take up to a minute while it wakes, and data resets on restart
-  (in-memory storage, by design — see [Deployment](#deployment)).
-  Verified end to end against this URL: user/project/task CRUD, status
-  transitions, validation and conflict errors, cascade delete, and the
-  shared error format.
-- **Demo video**: _add link here after recording_ — see
-  [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) for the timestamped shot list
-  (2–2:30 min, per the internship's Demo Video Requirements).
+## Deploying
+
+`render.yaml` builds the Dockerfile as one worker with a `/healthz` check. In the Render dashboard
+set `SEED_PASSWORD` and `CORS_ORIGINS`; `SECRET_KEY` is generated. The demo deployment is seeded
+and is not `APP_ENV=production`: see [ADR-221](docs/adr/ADR-221-render-demo-seeding.md).
+
+## Known limitations
+
+- **State is in memory.** Everything resets on restart, and the service must run one worker (a
+  second worker would hold a second, different copy of the data). Task 3 adds the database.
+- **The rate limiter is per process** ([ADR-216](docs/adr/ADR-216-in-process-rate-limiter.md)).
+- **Tokens cannot be revoked** before they expire (15 minutes). There is no refresh token and no
+  logout endpoint; the client discards its token.
+- **Task 1 features with no endpoint:** password reset, password and email change, avatar upload.
+  The pack does not define them ([compatibility notes](docs/compatibility-task1.md)).
+- **Registration always creates a developer.** The first lead has to be seeded.
