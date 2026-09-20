@@ -8,7 +8,7 @@ the code, the tests or the OpenAPI document drift apart.
 
 ![Python 3.12](https://img.shields.io/badge/python-3.12-3776ab) ![mypy strict](https://img.shields.io/badge/mypy-strict-2a6db2) ![FastAPI](https://img.shields.io/badge/FastAPI-Pydantic_v2-009688)
 
-- **Live API:** _add the Render URL after deploying (see [Deploying](#deploying))_
+- **Live API:** https://ih-task2-api.onrender.com ([docs](https://ih-task2-api.onrender.com/docs)). The free tier sleeps, so the first request can take about a minute. It is seeded demo data that resets on restart (see [Deploying](#deploying))
 - **Interactive docs:** `/docs` (Swagger UI), on in development, off in production
 - **Demo video:** _add the link after recording, see [DEMO_SCRIPT.md](DEMO_SCRIPT.md)_
 - **Standards:** [docs/standards/](docs/standards/) · **Decisions:** [docs/adr/](docs/adr/) ·

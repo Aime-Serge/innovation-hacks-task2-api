@@ -31,5 +31,5 @@ official page first.
 ## First comment
 
 Repo: _add the GitHub link_
-Live docs: _add the Render link_ (the demo instance is seeded and resets on restart)
+Live docs: https://ih-task2-api.onrender.com/docs (the demo instance is seeded and resets on restart)
 Demo: _add after recording_
