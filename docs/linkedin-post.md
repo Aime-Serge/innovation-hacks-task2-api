@@ -13,7 +13,7 @@ official page first.
 > - One error shape for everything, including 404s and bad JSON, with a request id you can trace in the logs.
 > - The architecture is enforced by a tool (import-linter): routers can't touch storage and services can't import FastAPI. The build fails if someone tries.
 > - Contract tested with Schemathesis across all 23 operations, plus a Postman collection under Newman. Testing them found real bugs: a schema that promised inputs the server rejected, and a 405 that hid half the allowed methods.
-> - Load tested with Locust on 500 tasks: worst p95 60 ms on my machine, no failed requests.
+> - Load tested with Locust on 500 tasks: worst p95 89 ms on my machine, no failed requests.
 >
 > What I'm being straight about: data is in memory and resets on restart, and the rate limiter is per process. Both are written up in the README, and Task 3 adds the database.
 >
