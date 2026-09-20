@@ -1,9 +1,8 @@
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Query, Request, Response
 
-from app.api.deps import ContainerDep, CurrentActor, CurrentUser, enforce_rate_limit
+from app.api.deps import ContainerDep, CurrentActor, CurrentUser, UserId, enforce_rate_limit
 from app.api.docs import errors
 from app.domain.enums import Theme
 from app.domain.unset import UNSET
@@ -75,18 +74,18 @@ async def list_users(
 
 
 @router.get(
-    "/{user_id}",
+    "/{userId}",
     response_model=UserOut,
     summary="Get a user",
     description="Return one user, or `404 NOT_FOUND`.",
-    responses=errors("UNAUTHENTICATED", "NOT_FOUND", "INTERNAL_ERROR"),
+    responses=errors("UNAUTHENTICATED", "NOT_FOUND", "VALIDATION_ERROR", "INTERNAL_ERROR"),
 )
-async def get_user(user_id: UUID, _: CurrentUser, container: ContainerDep) -> UserOut:
+async def get_user(user_id: UserId, _: CurrentUser, container: ContainerDep) -> UserOut:
     return UserOut.of(await container.users.get(user_id))
 
 
 @router.patch(
-    "/{user_id}",
+    "/{userId}",
     response_model=UserOut,
     summary="Update a user",
     description=(
@@ -98,7 +97,7 @@ async def get_user(user_id: UUID, _: CurrentUser, container: ContainerDep) -> Us
     ),
 )
 async def update_user(
-    user_id: UUID, payload: UserUpdate, actor: CurrentActor, container: ContainerDep
+    user_id: UserId, payload: UserUpdate, actor: CurrentActor, container: ContainerDep
 ) -> UserOut:
     given = payload.model_fields_set
     changes = UserChanges(
@@ -111,7 +110,7 @@ async def update_user(
 
 
 @router.delete(
-    "/{user_id}",
+    "/{userId}",
     status_code=204,
     summary="Delete a user",
     description=(
@@ -124,9 +123,10 @@ async def update_user(
         "NOT_FOUND",
         "USER_OWNS_PROJECTS",
         "LAST_LEAD",
+        "VALIDATION_ERROR",
         "INTERNAL_ERROR",
     ),
 )
-async def delete_user(user_id: UUID, actor: CurrentActor, container: ContainerDep) -> Response:
+async def delete_user(user_id: UserId, actor: CurrentActor, container: ContainerDep) -> Response:
     await container.users.delete(actor, user_id)
     return Response(status_code=204)

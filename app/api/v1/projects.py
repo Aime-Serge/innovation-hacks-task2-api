@@ -1,9 +1,8 @@
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Query, Response
 
-from app.api.deps import ContainerDep, CurrentActor, CurrentUser
+from app.api.deps import ContainerDep, CurrentActor, CurrentUser, ProjectId
 from app.api.docs import errors
 from app.api.v1.tasks import to_task_query
 from app.domain.unset import UNSET
@@ -71,26 +70,26 @@ async def list_projects(
 
 
 @router.get(
-    "/{project_id}",
+    "/{projectId}",
     response_model=ProjectOut,
     summary="Get a project",
     description="Return one project with its calculated progress (done tasks over total, BR-03).",
-    responses=errors("UNAUTHENTICATED", "NOT_FOUND", "INTERNAL_ERROR"),
+    responses=errors("UNAUTHENTICATED", "NOT_FOUND", "VALIDATION_ERROR", "INTERNAL_ERROR"),
 )
-async def get_project(project_id: UUID, _: CurrentUser, container: ContainerDep) -> ProjectOut:
+async def get_project(project_id: ProjectId, _: CurrentUser, container: ContainerDep) -> ProjectOut:
     view = await container.projects.get(project_id)
     return ProjectOut.of(view.project, view.progress)
 
 
 @router.patch(
-    "/{project_id}",
+    "/{projectId}",
     response_model=ProjectOut,
     summary="Update a project",
     description="Partial update by the owner or a lead.",
     responses=errors("UNAUTHENTICATED", "FORBIDDEN", "NOT_FOUND", "VALIDATION_ERROR", *_WRITE),
 )
 async def update_project(
-    project_id: UUID, payload: ProjectUpdate, actor: CurrentActor, container: ContainerDep
+    project_id: ProjectId, payload: ProjectUpdate, actor: CurrentActor, container: ContainerDep
 ) -> ProjectOut:
     given = payload.model_fields_set
     changes = ProjectChanges(
@@ -104,30 +103,35 @@ async def update_project(
 
 
 @router.delete(
-    "/{project_id}",
+    "/{projectId}",
     status_code=204,
     summary="Delete a project",
     description="By the owner or a lead. A project that still has tasks cannot be deleted.",
     responses=errors(
-        "UNAUTHENTICATED", "FORBIDDEN", "NOT_FOUND", "PROJECT_NOT_EMPTY", "INTERNAL_ERROR"
+        "UNAUTHENTICATED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "PROJECT_NOT_EMPTY",
+        "VALIDATION_ERROR",
+        "INTERNAL_ERROR",
     ),
 )
 async def delete_project(
-    project_id: UUID, actor: CurrentActor, container: ContainerDep
+    project_id: ProjectId, actor: CurrentActor, container: ContainerDep
 ) -> Response:
     await container.projects.delete(actor, project_id)
     return Response(status_code=204)
 
 
 @router.get(
-    "/{project_id}/tasks",
+    "/{projectId}/tasks",
     response_model=PageOut[TaskOut],
     summary="List a project's tasks",
     description="The same filters as `GET /tasks`; the project is fixed by the path.",
     responses=errors("UNAUTHENTICATED", "NOT_FOUND", "VALIDATION_ERROR", "INTERNAL_ERROR"),
 )
 async def list_project_tasks(
-    project_id: UUID,
+    project_id: ProjectId,
     query: Annotated[TaskListQuery, Query()],
     _: CurrentUser,
     container: ContainerDep,

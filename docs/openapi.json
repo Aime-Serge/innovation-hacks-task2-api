@@ -139,19 +139,6 @@
         "title": "ErrorResponse",
         "type": "object"
       },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "title": "Detail",
-            "type": "array"
-          }
-        },
-        "title": "HTTPValidationError",
-        "type": "object"
-      },
       "HealthOut": {
         "properties": {
           "status": {
@@ -1101,46 +1088,6 @@
         },
         "title": "UserUpdate",
         "type": "object"
-      },
-      "ValidationError": {
-        "properties": {
-          "ctx": {
-            "title": "Context",
-            "type": "object"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "title": "Location",
-            "type": "array"
-          },
-          "msg": {
-            "title": "Message",
-            "type": "string"
-          },
-          "type": {
-            "title": "Error Type",
-            "type": "string"
-          }
-        },
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError",
-        "type": "object"
       }
     },
     "securitySchemes": {
@@ -1976,18 +1923,20 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}": {
+    "/api/v1/projects/{projectId}": {
       "delete": {
         "description": "By the owner or a lead. A project that still has tasks cannot be deleted.",
         "operationId": "delete_project",
         "parameters": [
           {
+            "description": "The project's id.",
             "in": "path",
-            "name": "project_id",
+            "name": "projectId",
             "required": true,
             "schema": {
+              "description": "The project's id.",
               "format": "uuid",
-              "title": "Project Id",
+              "title": "Projectid",
               "type": "string"
             }
           }
@@ -2087,12 +2036,30 @@
           "422": {
             "content": {
               "application/json": {
+                "examples": {
+                  "VALIDATION_ERROR": {
+                    "summary": "VALIDATION_ERROR",
+                    "value": {
+                      "error": {
+                        "code": "VALIDATION_ERROR",
+                        "details": [
+                          {
+                            "field": "title",
+                            "message": "Must be between 1 and 120 characters."
+                          }
+                        ],
+                        "message": "One or more fields are invalid.",
+                        "requestId": "8f0c2e4a-3b1d-4f6e-9a57-2d7c1e9b5a10"
+                      }
+                    }
+                  }
+                },
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Validation error"
           },
           "500": {
             "content": {
@@ -2132,12 +2099,14 @@
         "operationId": "get_project",
         "parameters": [
           {
+            "description": "The project's id.",
             "in": "path",
-            "name": "project_id",
+            "name": "projectId",
             "required": true,
             "schema": {
+              "description": "The project's id.",
               "format": "uuid",
-              "title": "Project Id",
+              "title": "Projectid",
               "type": "string"
             }
           }
@@ -2200,12 +2169,30 @@
           "422": {
             "content": {
               "application/json": {
+                "examples": {
+                  "VALIDATION_ERROR": {
+                    "summary": "VALIDATION_ERROR",
+                    "value": {
+                      "error": {
+                        "code": "VALIDATION_ERROR",
+                        "details": [
+                          {
+                            "field": "title",
+                            "message": "Must be between 1 and 120 characters."
+                          }
+                        ],
+                        "message": "One or more fields are invalid.",
+                        "requestId": "8f0c2e4a-3b1d-4f6e-9a57-2d7c1e9b5a10"
+                      }
+                    }
+                  }
+                },
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Validation error"
           },
           "500": {
             "content": {
@@ -2245,12 +2232,14 @@
         "operationId": "update_project",
         "parameters": [
           {
+            "description": "The project's id.",
             "in": "path",
-            "name": "project_id",
+            "name": "projectId",
             "required": true,
             "schema": {
+              "description": "The project's id.",
               "format": "uuid",
-              "title": "Project Id",
+              "title": "Projectid",
               "type": "string"
             }
           }
@@ -2470,18 +2459,20 @@
         ]
       }
     },
-    "/api/v1/projects/{project_id}/tasks": {
+    "/api/v1/projects/{projectId}/tasks": {
       "get": {
         "description": "The same filters as `GET /tasks`; the project is fixed by the path.",
         "operationId": "list_project_tasks",
         "parameters": [
           {
+            "description": "The project's id.",
             "in": "path",
-            "name": "project_id",
+            "name": "projectId",
             "required": true,
             "schema": {
+              "description": "The project's id.",
               "format": "uuid",
-              "title": "Project Id",
+              "title": "Projectid",
               "type": "string"
             }
           },
@@ -3251,18 +3242,20 @@
         ]
       }
     },
-    "/api/v1/tasks/{task_id}": {
+    "/api/v1/tasks/{taskId}": {
       "delete": {
         "description": "By the project owner or a lead. Deleting again gives `404`.",
         "operationId": "delete_task",
         "parameters": [
           {
+            "description": "The task's id.",
             "in": "path",
-            "name": "task_id",
+            "name": "taskId",
             "required": true,
             "schema": {
+              "description": "The task's id.",
               "format": "uuid",
-              "title": "Task Id",
+              "title": "Taskid",
               "type": "string"
             }
           }
@@ -3340,12 +3333,30 @@
           "422": {
             "content": {
               "application/json": {
+                "examples": {
+                  "VALIDATION_ERROR": {
+                    "summary": "VALIDATION_ERROR",
+                    "value": {
+                      "error": {
+                        "code": "VALIDATION_ERROR",
+                        "details": [
+                          {
+                            "field": "title",
+                            "message": "Must be between 1 and 120 characters."
+                          }
+                        ],
+                        "message": "One or more fields are invalid.",
+                        "requestId": "8f0c2e4a-3b1d-4f6e-9a57-2d7c1e9b5a10"
+                      }
+                    }
+                  }
+                },
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Validation error"
           },
           "500": {
             "content": {
@@ -3385,12 +3396,14 @@
         "operationId": "get_task",
         "parameters": [
           {
+            "description": "The task's id.",
             "in": "path",
-            "name": "task_id",
+            "name": "taskId",
             "required": true,
             "schema": {
+              "description": "The task's id.",
               "format": "uuid",
-              "title": "Task Id",
+              "title": "Taskid",
               "type": "string"
             }
           }
@@ -3453,12 +3466,30 @@
           "422": {
             "content": {
               "application/json": {
+                "examples": {
+                  "VALIDATION_ERROR": {
+                    "summary": "VALIDATION_ERROR",
+                    "value": {
+                      "error": {
+                        "code": "VALIDATION_ERROR",
+                        "details": [
+                          {
+                            "field": "title",
+                            "message": "Must be between 1 and 120 characters."
+                          }
+                        ],
+                        "message": "One or more fields are invalid.",
+                        "requestId": "8f0c2e4a-3b1d-4f6e-9a57-2d7c1e9b5a10"
+                      }
+                    }
+                  }
+                },
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Validation error"
           },
           "500": {
             "content": {
@@ -3498,12 +3529,14 @@
         "operationId": "update_task",
         "parameters": [
           {
+            "description": "The task's id.",
             "in": "path",
-            "name": "task_id",
+            "name": "taskId",
             "required": true,
             "schema": {
+              "description": "The task's id.",
               "format": "uuid",
-              "title": "Task Id",
+              "title": "Taskid",
               "type": "string"
             }
           }
@@ -3723,18 +3756,20 @@
         ]
       }
     },
-    "/api/v1/tasks/{task_id}/status": {
+    "/api/v1/tasks/{taskId}/status": {
       "patch": {
         "description": "Follows the workflow: todo to in_progress; in_progress to in_review; in_review to in_progress or done; done to in_progress. Anything else is `409 INVALID_STATUS_TRANSITION` and lists the allowed statuses. Requesting the current status succeeds and changes nothing. `completedAt` is set on done and cleared on leaving it.",
         "operationId": "change_status",
         "parameters": [
           {
+            "description": "The task's id.",
             "in": "path",
-            "name": "task_id",
+            "name": "taskId",
             "required": true,
             "schema": {
+              "description": "The task's id.",
               "format": "uuid",
-              "title": "Task Id",
+              "title": "Taskid",
               "type": "string"
             }
           }
@@ -4352,18 +4387,20 @@
         ]
       }
     },
-    "/api/v1/users/{user_id}": {
+    "/api/v1/users/{userId}": {
       "delete": {
         "description": "Lead only. A user who owns projects, or the last lead, cannot be deleted. Their tasks become unassigned.",
         "operationId": "delete_user",
         "parameters": [
           {
+            "description": "The user's id.",
             "in": "path",
-            "name": "user_id",
+            "name": "userId",
             "required": true,
             "schema": {
+              "description": "The user's id.",
               "format": "uuid",
-              "title": "User Id",
+              "title": "Userid",
               "type": "string"
             }
           }
@@ -4473,12 +4510,30 @@
           "422": {
             "content": {
               "application/json": {
+                "examples": {
+                  "VALIDATION_ERROR": {
+                    "summary": "VALIDATION_ERROR",
+                    "value": {
+                      "error": {
+                        "code": "VALIDATION_ERROR",
+                        "details": [
+                          {
+                            "field": "title",
+                            "message": "Must be between 1 and 120 characters."
+                          }
+                        ],
+                        "message": "One or more fields are invalid.",
+                        "requestId": "8f0c2e4a-3b1d-4f6e-9a57-2d7c1e9b5a10"
+                      }
+                    }
+                  }
+                },
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Validation error"
           },
           "500": {
             "content": {
@@ -4518,12 +4573,14 @@
         "operationId": "get_user",
         "parameters": [
           {
+            "description": "The user's id.",
             "in": "path",
-            "name": "user_id",
+            "name": "userId",
             "required": true,
             "schema": {
+              "description": "The user's id.",
               "format": "uuid",
-              "title": "User Id",
+              "title": "Userid",
               "type": "string"
             }
           }
@@ -4586,12 +4643,30 @@
           "422": {
             "content": {
               "application/json": {
+                "examples": {
+                  "VALIDATION_ERROR": {
+                    "summary": "VALIDATION_ERROR",
+                    "value": {
+                      "error": {
+                        "code": "VALIDATION_ERROR",
+                        "details": [
+                          {
+                            "field": "title",
+                            "message": "Must be between 1 and 120 characters."
+                          }
+                        ],
+                        "message": "One or more fields are invalid.",
+                        "requestId": "8f0c2e4a-3b1d-4f6e-9a57-2d7c1e9b5a10"
+                      }
+                    }
+                  }
+                },
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             },
-            "description": "Validation Error"
+            "description": "Validation error"
           },
           "500": {
             "content": {
@@ -4631,12 +4706,14 @@
         "operationId": "update_user",
         "parameters": [
           {
+            "description": "The user's id.",
             "in": "path",
-            "name": "user_id",
+            "name": "userId",
             "required": true,
             "schema": {
+              "description": "The user's id.",
               "format": "uuid",
-              "title": "User Id",
+              "title": "Userid",
               "type": "string"
             }
           }

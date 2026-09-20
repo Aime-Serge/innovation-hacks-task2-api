@@ -1,10 +1,9 @@
 from datetime import date
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Query, Response
 
-from app.api.deps import ContainerDep, CurrentActor, CurrentUser
+from app.api.deps import ContainerDep, CurrentActor, CurrentUser, TaskId
 from app.api.docs import errors
 from app.domain.unset import UNSET
 from app.repositories.base import TaskQuery
@@ -89,18 +88,18 @@ async def list_tasks(
 
 
 @router.get(
-    "/{task_id}",
+    "/{taskId}",
     response_model=TaskOut,
     summary="Get a task",
     description="Return one task, or `404 NOT_FOUND`.",
-    responses=errors("UNAUTHENTICATED", "NOT_FOUND", "INTERNAL_ERROR"),
+    responses=errors("UNAUTHENTICATED", "NOT_FOUND", "VALIDATION_ERROR", "INTERNAL_ERROR"),
 )
-async def get_task(task_id: UUID, _: CurrentUser, container: ContainerDep) -> TaskOut:
+async def get_task(task_id: TaskId, _: CurrentUser, container: ContainerDep) -> TaskOut:
     return TaskOut.of(await container.tasks.get(task_id))
 
 
 @router.patch(
-    "/{task_id}",
+    "/{taskId}",
     response_model=TaskOut,
     summary="Update a task",
     description=(
@@ -110,7 +109,7 @@ async def get_task(task_id: UUID, _: CurrentUser, container: ContainerDep) -> Ta
     responses=errors("UNAUTHENTICATED", "FORBIDDEN", "NOT_FOUND", "VALIDATION_ERROR", *_WRITE),
 )
 async def update_task(
-    task_id: UUID, payload: TaskUpdate, actor: CurrentActor, container: ContainerDep
+    task_id: TaskId, payload: TaskUpdate, actor: CurrentActor, container: ContainerDep
 ) -> TaskOut:
     given = payload.model_fields_set
     changes = TaskChanges(
@@ -124,7 +123,7 @@ async def update_task(
 
 
 @router.patch(
-    "/{task_id}/status",
+    "/{taskId}/status",
     response_model=TaskOut,
     summary="Change a task's status",
     description=(
@@ -144,18 +143,20 @@ async def update_task(
     ),
 )
 async def change_status(
-    task_id: UUID, payload: StatusChange, actor: CurrentActor, container: ContainerDep
+    task_id: TaskId, payload: StatusChange, actor: CurrentActor, container: ContainerDep
 ) -> TaskOut:
     return TaskOut.of(await container.tasks.change_status(actor, task_id, payload.status))
 
 
 @router.delete(
-    "/{task_id}",
+    "/{taskId}",
     status_code=204,
     summary="Delete a task",
     description="By the project owner or a lead. Deleting again gives `404`.",
-    responses=errors("UNAUTHENTICATED", "FORBIDDEN", "NOT_FOUND", "INTERNAL_ERROR"),
+    responses=errors(
+        "UNAUTHENTICATED", "FORBIDDEN", "NOT_FOUND", "VALIDATION_ERROR", "INTERNAL_ERROR"
+    ),
 )
-async def delete_task(task_id: UUID, actor: CurrentActor, container: ContainerDep) -> Response:
+async def delete_task(task_id: TaskId, actor: CurrentActor, container: ContainerDep) -> Response:
     await container.tasks.delete(actor, task_id)
     return Response(status_code=204)

@@ -1,8 +1,9 @@
 """Request dependencies: the container, the current user, the rate limit (section 7)."""
 
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import Depends, Request
+from fastapi import Depends, Path, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.container import Container
@@ -41,6 +42,11 @@ async def current_actor(user: CurrentUser) -> Actor:
 
 
 CurrentActor = Annotated[Actor, Depends(current_actor)]
+
+# Path parameters are camelCase like every other name on the wire (section 6).
+UserId = Annotated[UUID, Path(alias="userId", description="The user's id.")]
+ProjectId = Annotated[UUID, Path(alias="projectId", description="The project's id.")]
+TaskId = Annotated[UUID, Path(alias="taskId", description="The task's id.")]
 
 
 def enforce_rate_limit(
