@@ -1053,6 +1053,28 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/": {
+      "get": {
+        "description": "A short HTML page that says what this service is and links to the docs and the health checks. No token needed.",
+        "operationId": "welcome",
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The welcome page."
+          }
+        },
+        "summary": "Welcome page",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
     "/api/v1/activity": {
       "get": {
         "description": "Newest first. Records project created, task created, status changed and task completed. `limit` (default 10, maximum 50) is the page size of page 1.",

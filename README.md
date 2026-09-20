@@ -104,6 +104,7 @@ and `sort` (`field`, or `-field` for descending).
 | DELETE | `/api/v1/tasks/{taskId}` | owner or lead | 204 |
 | GET | `/api/v1/activity` | any user | Recent activity, newest first; `limit` is the page size |
 | GET | `/api/v1/dashboard/summary` | any user | Counts, completion rate and deadlines in the next 7 days |
+| GET | `/` | public | Welcome page (HTML) |
 | GET | `/healthz` | public | Liveness |
 | GET | `/readyz` | public | Readiness (503 when a dependency is down) |
 

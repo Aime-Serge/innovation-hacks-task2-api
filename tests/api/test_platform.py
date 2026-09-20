@@ -284,3 +284,32 @@ def test_tc322_missing_secret_stops_startup_and_names_the_variable(
     monkeypatch.chdir("/")  # so no .env file is picked up
     with pytest.raises(SystemExit, match="SECRET_KEY"):
         load_settings()
+
+
+async def test_tc323_welcome_page_is_public_static_html_with_its_own_csp(env: Env) -> None:
+    import base64
+    import hashlib
+    import re
+
+    response = await env.client.get("/")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "<script" not in response.text.lower()
+    assert "DevDash API" in response.text
+    csp = response.headers["content-security-policy"]
+    assert csp.count("default-src") == 1  # the middleware did not add a second policy
+    style = re.search(r"<style>(.*?)</style>", response.text, re.S)
+    assert style is not None
+    digest = base64.b64encode(hashlib.sha256(style.group(1).encode()).digest()).decode()
+    assert f"'sha256-{digest}'" in csp
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+async def test_tc323_welcome_page_links_docs_only_when_they_exist() -> None:
+    async for dev in build_env(None, docs_enabled=True):
+        assert 'href="/docs"' in (await dev.client.get("/")).text
+    async for prod in build_env(None, app_env="production", docs_enabled=None):
+        page = (await prod.client.get("/")).text
+        assert 'href="/docs"' not in page
+        assert "off in this environment" in page
+        assert (await prod.client.post("/")).status_code == 405

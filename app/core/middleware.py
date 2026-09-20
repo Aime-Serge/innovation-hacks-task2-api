@@ -114,12 +114,15 @@ class SecurityHeadersMiddleware:
         async def send_secure(message: Message) -> None:
             if message["type"] == "http.response.start":
                 headers: list[tuple[bytes, bytes]] = list(message.get("headers", []))
+                own_csp = any(name.lower() == b"content-security-policy" for name, _ in headers)
                 extra = {
                     b"x-content-type-options": b"nosniff",
                     b"referrer-policy": b"no-referrer",
                     b"x-frame-options": b"DENY",
                     b"content-security-policy": (_DOCS_CSP if docs else _API_CSP).encode(),
                 }
+                if own_csp:  # a route with its own policy (the welcome page) keeps it
+                    del extra[b"content-security-policy"]
                 if auth_route:
                     extra[b"cache-control"] = b"no-store"
                 if self.production:
