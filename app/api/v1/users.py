@@ -32,7 +32,7 @@ _WRITE = ("PAYLOAD_TOO_LARGE", "UNSUPPORTED_MEDIA_TYPE", "MALFORMED_REQUEST", "I
 async def register(
     payload: UserCreate, request: Request, response: Response, container: ContainerDep
 ) -> UserOut:
-    enforce_rate_limit(request, container, payload.email)
+    enforce_rate_limit(request, container, "register")
     user = await container.users.register(
         payload.name,
         payload.email,

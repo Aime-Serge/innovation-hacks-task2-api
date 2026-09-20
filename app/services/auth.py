@@ -26,7 +26,7 @@ class AuthService:
 
     async def authenticate(self, token: str) -> User:
         """The role is read from the store, so a demotion applies immediately (section 9)."""
-        user = await self._users.get(self._tokens.subject(token))
+        user = await self._users.get(self._tokens.subject(token, self._clock.now()))
         if user is None:
             raise Unauthenticated("The access token is missing, invalid or expired.")
         return user

@@ -60,8 +60,11 @@ class TokenCodec:
         }
         return IssuedToken(jwt.encode(claims, self._secret, algorithm=ALGORITHM), self._ttl)
 
-    def subject(self, token: str) -> UUID:
-        """Return the user id, or raise Unauthenticated. The algorithm is pinned, `none` fails."""
+    def subject(self, token: str, now: datetime) -> UUID:
+        """Return the user id, or raise Unauthenticated. The algorithm is pinned, `none` fails.
+
+        Expiry is checked against the injected clock, not the wall clock, so it is testable.
+        """
         try:
             claims = jwt.decode(
                 token,
@@ -69,8 +72,14 @@ class TokenCodec:
                 algorithms=[ALGORITHM],
                 issuer=self._issuer,
                 audience=self._audience,
-                options={"require": ["exp", "iat", "iss", "aud", "sub"]},
+                options={
+                    "require": ["exp", "iat", "iss", "aud", "sub"],
+                    "verify_exp": False,
+                    "verify_iat": False,
+                },
             )
+            if int(claims["exp"]) <= now.timestamp() or int(claims["iat"]) > now.timestamp():
+                raise Unauthenticated("The access token is missing, invalid or expired.")
             return UUID(str(claims["sub"]))
-        except (jwt.PyJWTError, ValueError):
+        except (jwt.PyJWTError, ValueError, TypeError):
             raise Unauthenticated("The access token is missing, invalid or expired.") from None

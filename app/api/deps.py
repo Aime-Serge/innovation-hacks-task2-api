@@ -43,7 +43,13 @@ async def current_actor(user: CurrentUser) -> Actor:
 CurrentActor = Annotated[Actor, Depends(current_actor)]
 
 
-def enforce_rate_limit(request: Request, container: Container, email: str) -> None:
-    """NFR-216: per client and email. Counts every attempt, successful or not."""
+def enforce_rate_limit(
+    request: Request, container: Container, scope: str, email: str | None = None
+) -> None:
+    """NFR-216: per client, and per email for login. Counts every attempt, successful or not.
+
+    Registration passes no email, so varying the address cannot dodge the limit.
+    """
     client = request.client.host if request.client else "unknown"
-    container.limiter.check(f"{client}:{email.strip().lower()}")
+    suffix = f":{email.strip().lower()}" if email is not None else ""
+    container.limiter.check(f"{scope}:{client}{suffix}")

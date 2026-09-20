@@ -42,7 +42,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
     },
 )
 async def login(payload: LoginRequest, request: Request, container: ContainerDep) -> TokenOut:
-    enforce_rate_limit(request, container, payload.email)
+    enforce_rate_limit(request, container, "login", payload.email)
     issued = await container.auth.login(payload.email, payload.password)
     return TokenOut(access_token=issued.access_token, expires_in=issued.expires_in)
 
