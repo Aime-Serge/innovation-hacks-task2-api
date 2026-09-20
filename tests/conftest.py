@@ -14,6 +14,7 @@ from app.container import Container
 from app.core.config import Settings
 from app.main import create_app
 from app.seed import seed
+from tests.coverage_gate import gaps, recorder
 
 PASSWORD = "Seeded-Password-123"  # a test fixture, never a real credential
 SECRET = "test-only-secret-key-that-is-long-enough-0123456789"
@@ -76,7 +77,11 @@ async def build_env(profile: str | None = "empty", **settings: Any) -> AsyncIter
     if profile is not None:
         await seed(container, profile, PASSWORD)
     transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        event_hooks={"response": [recorder(app.openapi())]},
+    ) as client:
         env = Env(app, container, clock, client, {})
         for email in (LEAD, DEV, OTHER) if profile is not None else ():
             response = await env.login(email)
@@ -115,3 +120,19 @@ async def make_task(env: Env, project_id: str, who: str = DEV, **body: Any) -> d
 def error_code(response: httpx.Response) -> str:
     code: str = response.json()["error"]["code"]
     return code
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    """On a full, green run, fail the session when an operation lacks a success or failure test."""
+    config = session.config
+    partial = config.option.keyword or config.option.markexpr or session.testsfailed
+    if partial or any(a not in ("tests", "tests/") for a in config.args if not a.startswith("-")):
+        return
+    checked, missing = gaps(create_app(make_settings()).openapi())
+    reporter = config.pluginmanager.get_plugin("terminalreporter")
+    if reporter:
+        reporter.write_line(f"endpoint coverage: {checked} operations, {len(missing)} gaps")
+        for line in sorted(missing):
+            reporter.write_line(f"  {line}")
+    if missing:
+        session.exitstatus = 1
