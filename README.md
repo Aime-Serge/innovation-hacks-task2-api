@@ -14,6 +14,20 @@ the code, the tests or the OpenAPI document drift apart.
 - **Standards:** [docs/standards/](docs/standards/) · **Decisions:** [docs/adr/](docs/adr/) ·
   **Task 1 compatibility:** [docs/compatibility-task1.md](docs/compatibility-task1.md)
 
+## Tour
+
+| | |
+| --- | --- |
+| ![Welcome page at the service root](docs/screenshots/01-welcome.png) **Welcome page** (`GET /`): what the service is, links to the docs and a three-call example | ![Swagger UI operation list](docs/screenshots/02-swagger-overview.png) **Interactive docs** (`/docs`): every operation grouped by resource, generated from the code |
+
+![Swagger UI showing a 409 INVALID_STATUS_TRANSITION response](docs/screenshots/03-invalid-transition-409.png)
+
+**A business rule in action.** In Swagger UI, `PATCH /api/v1/tasks/{taskId}/status` with
+`{"status": "done"}` on a task that is still `todo` returns `409 INVALID_STATUS_TRANSITION`. The
+error names the statuses that are allowed (`in_progress`), and carries a `requestId` that matches the
+`X-Request-ID` header and the server log. The security headers are visible too. The screenshots come
+from a local run with seeded demo data.
+
 ## Run it (3 commands)
 
 You need [uv](https://docs.astral.sh/uv/) (it installs Python 3.12 for you).
