@@ -18,9 +18,12 @@ from pydantic.alias_generators import to_camel
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
-# `\S` states "not blank" in the schema too, so the document does not promise what trimming rejects.
-Name = Annotated[str, StringConstraints(min_length=1, max_length=80, pattern=r"\S")]
-Title = Annotated[str, StringConstraints(min_length=1, max_length=120, pattern=r"\S")]
+# Not blank: at least one character no engine treats as whitespace. The class is spelled out
+# because Python trims \x1c-\x1f and \x85 while ECMA regexes do not call them whitespace.
+NOT_BLANK = r"[^\s\x1c-\x1f\x85]"
+# Stated in the schema too, so the document never promises what trimming would then reject.
+Name = Annotated[str, StringConstraints(min_length=1, max_length=80, pattern=NOT_BLANK)]
+Title = Annotated[str, StringConstraints(min_length=1, max_length=120, pattern=NOT_BLANK)]
 SearchText = Annotated[str, StringConstraints(max_length=100)]
 
 
@@ -32,14 +35,18 @@ def _https_only(value: str) -> str:
 
 
 # The host is ASCII in the pattern so the schema never promises a URL the parser would refuse.
-_HTTPS_PATTERN = r"^https://[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?(:[0-9]{1,5})?([/?#]\S*)?$"
+_HTTPS_PATTERN = (
+    r"^https://[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?(:[0-9]{1,5})?([/?#][^ \t\r\n]*)?$"
+)
 HttpsUrl = Annotated[
     str, StringConstraints(max_length=2048, pattern=_HTTPS_PATTERN), AfterValidator(_https_only)
 ]
 
+# Whitespace is spelled out as a character class: `\\s` means different things to the Rust regex
+# engine and to the ECMA engines that read the schema; a fuzzer found addresses they disagree on.
 # A pragmatic address check, stated identically in the schema and the validator (ADR-222): the
 # stricter library check also refuses reserved domains such as `.test` that the schema allows.
-EMAIL_PATTERN = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+EMAIL_PATTERN = r"^[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+$"
 Email = Annotated[str, StringConstraints(max_length=254, pattern=EMAIL_PATTERN, to_lower=True)]
 
 
