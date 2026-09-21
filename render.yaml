@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: ih-task2-api
+    name: devdashapi
     runtime: docker
     plan: free
     healthCheckPath: /healthz
