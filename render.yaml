@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: devdashapi
+    name: devdash-api
     runtime: docker
     plan: free
     healthCheckPath: /healthz
