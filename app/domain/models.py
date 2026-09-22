@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Any
 from uuid import UUID
 
 from app.domain.enums import ActivityType, Priority, ProjectStatus, Role, TaskStatus, Theme
@@ -18,6 +19,11 @@ class User:
     theme: Theme
     created_at: datetime
     updated_at: datetime
+    # The early API has no separate profile repository.  Keep the full Task 4 registration block
+    # with the account so old data stays compatible while new sign-ups retain their details.
+    given_name: str | None = None
+    family_name: str | None = None
+    profile: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True, slots=True)
