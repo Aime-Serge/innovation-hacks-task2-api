@@ -566,6 +566,117 @@
         "title": "ProjectUpdate",
         "type": "object"
       },
+      "RegistrationProfile": {
+        "additionalProperties": false,
+        "description": "The professional details collected by Task 4 registration, kept compatible here.",
+        "properties": {
+          "ageConfirmed": {
+            "title": "Ageconfirmed",
+            "type": "boolean"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "companyName": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Companyname"
+          },
+          "country": {
+            "pattern": "^[A-Z]{2}$",
+            "title": "Country",
+            "type": "string"
+          },
+          "discipline": {
+            "enum": [
+              "backend",
+              "frontend",
+              "full_stack",
+              "mobile",
+              "devops_cloud",
+              "data_ai",
+              "security",
+              "qa",
+              "other"
+            ],
+            "title": "Discipline",
+            "type": "string"
+          },
+          "employmentStatus": {
+            "enum": [
+              "employed",
+              "freelance",
+              "student",
+              "between_roles"
+            ],
+            "title": "Employmentstatus",
+            "type": "string"
+          },
+          "jobTitle": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jobtitle"
+          },
+          "seniority": {
+            "enum": [
+              "student_intern",
+              "junior",
+              "mid",
+              "senior",
+              "lead_or_above"
+            ],
+            "title": "Seniority",
+            "type": "string"
+          },
+          "termsAccepted": {
+            "title": "Termsaccepted",
+            "type": "boolean"
+          },
+          "timeZone": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "discipline",
+          "seniority",
+          "employmentStatus",
+          "country",
+          "timeZone",
+          "termsAccepted",
+          "ageConfirmed"
+        ],
+        "title": "RegistrationProfile",
+        "type": "object"
+      },
       "Role": {
         "enum": [
           "developer",
@@ -888,8 +999,8 @@
           "avatarUrl": {
             "anyOf": [
               {
-                "maxLength": 2048,
-                "pattern": "^https://[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?(:[0-9]{1,5})?([/?#][^ \\t\\r\\n]*)?$",
+                "maxLength": 700000,
+                "pattern": "(?:^https://[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?(:[0-9]{1,5})?([/?#][^ \\t\\r\\n]*)?$)|(?:^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$)",
                 "type": "string"
               },
               {
@@ -907,15 +1018,48 @@
             "title": "Email",
             "type": "string"
           },
+          "familyName": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Familyname"
+          },
+          "givenName": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Givenname"
+          },
           "name": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "pattern": "[^\\s\\x1c-\\x1f\\x85]",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "examples": [
               "Ada Lovelace"
             ],
-            "maxLength": 80,
-            "minLength": 1,
-            "pattern": "[^\\s\\x1c-\\x1f\\x85]",
-            "title": "Name",
-            "type": "string"
+            "title": "Name"
           },
           "password": {
             "description": "12 to 128 characters, not equal to the email.",
@@ -933,10 +1077,19 @@
                 "type": "null"
               }
             ]
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegistrationProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
-          "name",
           "email",
           "password"
         ],
@@ -967,6 +1120,28 @@
             "title": "Email",
             "type": "string"
           },
+          "familyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Familyname"
+          },
+          "givenName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Givenname"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -978,6 +1153,16 @@
           },
           "preferences": {
             "$ref": "#/components/schemas/Preferences"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegistrationProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "role": {
             "$ref": "#/components/schemas/Role"
@@ -994,9 +1179,12 @@
           "updatedAt",
           "id",
           "name",
+          "givenName",
+          "familyName",
           "email",
           "role",
           "avatarUrl",
+          "profile",
           "preferences"
         ],
         "title": "UserOut",
@@ -1009,8 +1197,8 @@
           "avatarUrl": {
             "anyOf": [
               {
-                "maxLength": 2048,
-                "pattern": "^https://[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?(:[0-9]{1,5})?([/?#][^ \\t\\r\\n]*)?$",
+                "maxLength": 700000,
+                "pattern": "(?:^https://[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?(:[0-9]{1,5})?([/?#][^ \\t\\r\\n]*)?$)|(?:^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$)",
                 "type": "string"
               },
               {

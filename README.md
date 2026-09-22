@@ -89,6 +89,15 @@ curl -s $BASE/api/v1/auth/me -H "Authorization: Bearer $TOKEN"
 Tokens last 15 minutes. An unknown email and a wrong password give the same `401
 INVALID_CREDENTIALS`. Login and registration are rate limited (429 with `Retry-After`).
 
+### Full-registration compatibility
+
+Task 2 keeps the original `name` payload for its milestone tests. It also accepts the Task 4
+registration shape: `givenName`, `familyName`, the required professional `profile` block
+(discipline, seniority, employment, location and consent), and an optional `avatarUrl`. The image
+may be an HTTPS link or a PNG, JPEG or WebP `data:` URL from a selected file (500 KB before base64
+encoding). This prevents early API consumers from reducing a completed profile to only name and
+email before moving to the final platform.
+
 ## Endpoints
 
 Every route except registration, login and the health checks needs `Authorization: Bearer <token>`.
