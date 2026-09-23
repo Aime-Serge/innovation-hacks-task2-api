@@ -28,6 +28,21 @@ error names the statuses that are allowed (`in_progress`), and carries a `reques
 `X-Request-ID` header and the server log. The security headers are visible too. The screenshots come
 from a local run with seeded demo data.
 
+## Technology stack
+
+Versions below are the resolved versions in `uv.lock` (source of truth for what actually runs),
+not the unpinned ranges in `pyproject.toml`.
+
+| Component | Version |
+| --- | --- |
+| Python | 3.12 (pinned by `pyproject.toml`; see [ADR-213](docs/adr/ADR-213-python-3-12.md)) |
+| FastAPI | 0.141.1 |
+| Pydantic | 2.13.5 |
+| Pydantic Settings | 2.15.0 |
+| Uvicorn | 0.53.0 |
+| PyJWT | 2.14.0 |
+| argon2-cffi | 25.1.0 |
+
 ## Run it (3 commands)
 
 You need [uv](https://docs.astral.sh/uv/) (it installs Python 3.12 for you).
@@ -104,32 +119,36 @@ Every route except registration, login and the health checks needs `Authorizatio
 JSON is camelCase, ids are UUIDs, dates are ISO 8601, and lists take `page`, `pageSize` (1 to 100)
 and `sort` (`field`, or `-field` for descending).
 
-| Method | Path | Who | What |
-| --- | --- | --- | --- |
-| POST | `/api/v1/auth/login` | public | Exchange credentials for a token |
-| GET | `/api/v1/auth/me` | any user | The current user |
-| POST | `/api/v1/users` | public | Register (201 + `Location`) |
-| GET | `/api/v1/users` | any user | List, search `q`, filter `role` |
-| GET | `/api/v1/users/{userId}` | any user | One user |
-| PATCH | `/api/v1/users/{userId}` | self or lead | Name, avatar, preferences; role by a lead only |
-| DELETE | `/api/v1/users/{userId}` | lead | 204; 409 for the last lead or an owner of projects |
-| GET | `/api/v1/projects` | any user | List, filter `status`, `ownerId`, search `q` |
-| POST | `/api/v1/projects` | any user | Create; you become the owner |
-| GET | `/api/v1/projects/{projectId}` | any user | One project with progress |
-| PATCH | `/api/v1/projects/{projectId}` | owner or lead | Partial update |
-| DELETE | `/api/v1/projects/{projectId}` | owner or lead | 204; 409 while it has tasks |
-| GET | `/api/v1/projects/{projectId}/tasks` | any user | The project's tasks, same filters as `/tasks` |
-| GET | `/api/v1/tasks` | any user | Filter `status`, `priority`, `projectId`, `assigneeId`, `overdue`, `dueBefore`, `dueAfter`, `q` |
-| POST | `/api/v1/tasks` | project owner or lead | Create (status starts as `todo`) |
-| GET | `/api/v1/tasks/{taskId}` | any user | One task |
-| PATCH | `/api/v1/tasks/{taskId}` | owner, assignee or lead | Edit fields (not status) |
-| PATCH | `/api/v1/tasks/{taskId}/status` | owner, assignee or lead | Move through the workflow |
-| DELETE | `/api/v1/tasks/{taskId}` | owner or lead | 204 |
-| GET | `/api/v1/activity` | any user | Recent activity, newest first; `limit` is the page size |
-| GET | `/api/v1/dashboard/summary` | any user | Counts, completion rate and deadlines in the next 7 days |
-| GET | `/` | public | Welcome page (HTML) |
-| GET | `/healthz` | public | Liveness |
-| GET | `/readyz` | public | Readiness (503 when a dependency is down) |
+FR IDs below are from `docs/standards/task2-standards-pack.md`; cross-cutting requirements
+(FR-223 to FR-233: authorization, error handling, validation, status codes, list contract,
+versioning, CORS, request IDs, health) apply across the table and are not repeated per row.
+
+| Method | Path | Who | What | FR |
+| --- | --- | --- | --- | --- |
+| POST | `/api/v1/auth/login` | public | Exchange credentials for a token | FR-203 |
+| GET | `/api/v1/auth/me` | any user | The current user | FR-204 |
+| POST | `/api/v1/users` | public | Register (201 + `Location`) | FR-201, FR-202 |
+| GET | `/api/v1/users` | any user | List, search `q`, filter `role` | FR-205 |
+| GET | `/api/v1/users/{userId}` | any user | One user | FR-206 |
+| PATCH | `/api/v1/users/{userId}` | self or lead | Name, avatar, preferences; role by a lead only | FR-207 |
+| DELETE | `/api/v1/users/{userId}` | lead | 204; 409 for the last lead or an owner of projects | FR-208 |
+| GET | `/api/v1/projects` | any user | List, filter `status`, `ownerId`, search `q` | FR-211 |
+| POST | `/api/v1/projects` | any user | Create; you become the owner | FR-209 |
+| GET | `/api/v1/projects/{projectId}` | any user | One project with progress | FR-210 |
+| PATCH | `/api/v1/projects/{projectId}` | owner or lead | Partial update | FR-212 |
+| DELETE | `/api/v1/projects/{projectId}` | owner or lead | 204; 409 while it has tasks | FR-213 |
+| GET | `/api/v1/projects/{projectId}/tasks` | any user | The project's tasks, same filters as `/tasks` | FR-220 |
+| GET | `/api/v1/tasks` | any user | Filter `status`, `priority`, `projectId`, `assigneeId`, `overdue`, `dueBefore`, `dueAfter`, `q` | FR-216 |
+| POST | `/api/v1/tasks` | project owner or lead | Create (status starts as `todo`) | FR-214 |
+| GET | `/api/v1/tasks/{taskId}` | any user | One task | FR-215 |
+| PATCH | `/api/v1/tasks/{taskId}` | owner, assignee or lead | Edit fields (not status) | FR-217 |
+| PATCH | `/api/v1/tasks/{taskId}/status` | owner, assignee or lead | Move through the workflow | FR-219 |
+| DELETE | `/api/v1/tasks/{taskId}` | owner or lead | 204 | FR-218 |
+| GET | `/api/v1/activity` | any user | Recent activity, newest first; `limit` is the page size | FR-221 |
+| GET | `/api/v1/dashboard/summary` | any user | Counts, completion rate and deadlines in the next 7 days | FR-222 |
+| GET | `/` | public | Welcome page (HTML) | FR-228 |
+| GET | `/healthz` | public | Liveness | FR-233 |
+| GET | `/readyz` | public | Readiness (503 when a dependency is down) | FR-233 |
 
 Task status workflow: `todo` → `in_progress` → `in_review` → `done`, with `in_review` → `in_progress`
 and `done` → `in_progress` to reopen. Anything else is `409 INVALID_STATUS_TRANSITION`, and the
