@@ -8,40 +8,80 @@ the code, the tests or the OpenAPI document drift apart.
 
 ![Python 3.12](https://img.shields.io/badge/python-3.12-3776ab) ![mypy strict](https://img.shields.io/badge/mypy-strict-2a6db2) ![FastAPI](https://img.shields.io/badge/FastAPI-Pydantic_v2-009688)
 
+![DevDash API welcome page with API documentation links and a quick-start example](docs/screenshots/task-2/welcome-desktop.png)
+
 - **Live API:** https://ih-task2-api.onrender.com ([docs](https://ih-task2-api.onrender.com/docs)). The free tier sleeps, so the first request can take about a minute. It is seeded demo data that resets on restart (see [Deploying](#deploying))
 - **Interactive docs:** `/docs` (Swagger UI), on in development, off in production
 - **Demo video:** _add the link after recording, see [DEMO_SCRIPT.md](DEMO_SCRIPT.md)_
 - **Standards:** [docs/standards/](docs/standards/) · **Decisions:** [docs/adr/](docs/adr/) ·
   **Task 1 compatibility:** [docs/compatibility-task1.md](docs/compatibility-task1.md)
 
-## Tour
+## Features and request workflows
 
-| | |
-| --- | --- |
-| ![Welcome page at the service root](docs/screenshots/01-welcome.png) **Welcome page** (`GET /`): what the service is, links to the docs and a three-call example | ![Swagger UI operation list](docs/screenshots/02-swagger-overview.png) **Interactive docs** (`/docs`): every operation grouped by resource, generated from the code |
+- **Identity:** register a developer with `POST /api/v1/users`, exchange credentials at
+  `POST /api/v1/auth/login`, then send the returned short-lived bearer token to protected routes.
+  `GET /api/v1/auth/me` returns the authenticated identity. Login and registration have per-process
+  rate limits; invalid email and password attempts share the same response.
+- **Projects:** create a project as an authenticated user (the creator becomes owner), then read,
+  search, filter, update, or delete it according to owner/lead permissions. A project with tasks
+  cannot be deleted; the API responds with a conflict.
+- **Tasks:** create tasks in a project, query by status, priority, assignee, date, or text, edit
+  fields, and move status only through the defined workflow. An invalid transition returns
+  `409 INVALID_STATUS_TRANSITION` and identifies allowed next states.
+- **Dashboard and activity:** retrieve an aggregate summary and recent activity for the seeded or
+  in-memory records using authenticated GET requests.
+- **Consistent API contract:** versioned JSON routes use camelCase and UUID identifiers, paginated
+  list responses, request IDs, a common error envelope, and generated OpenAPI documentation.
+- **Service health:** use public `/healthz` for liveness and `/readyz` for readiness. Readiness
+  returns `503` when a dependency is unavailable.
 
-![Swagger UI showing a 409 INVALID_STATUS_TRANSITION response](docs/screenshots/03-invalid-transition-409.png)
+### Example status-transition flow
 
-**A business rule in action.** In Swagger UI, `PATCH /api/v1/tasks/{taskId}/status` with
-`{"status": "done"}` on a task that is still `todo` returns `409 INVALID_STATUS_TRANSITION`. The
-error names the statuses that are allowed (`in_progress`), and carries a `requestId` that matches the
-`X-Request-ID` header and the server log. The security headers are visible too. The screenshots come
-from a local run with seeded demo data.
+Authenticate, create a project, create a task (new tasks start as `todo`), then request
+`PATCH /api/v1/tasks/{taskId}/status` with `{"status":"in_progress"}`. Continue through
+`in_review` and `done`; reopening `done` to `in_progress` is supported. Trying to move directly
+from `todo` to `done` returns `409 INVALID_STATUS_TRANSITION` and is shown below. See
+[Endpoints](#endpoints) for the complete request sequence and [Errors](#errors) for the response
+contract.
+
+## Screenshots
+
+These current captures were made on 2026-09-23 against a locally running development API with synthetic request data. Browser captures use 1440 × 900. The API welcome page and Swagger overview were regenerated; validation, authentication, and not-found images show actual local API responses.
+
+### Service and API surface
+
+![Task 2 service welcome page with API documentation entry point](docs/screenshots/task-2/welcome-desktop.png)
+
+![Fresh Swagger UI operation index grouped by API resource](docs/screenshots/task-2/swagger-overview-desktop.png)
+
+### Request validation and errors
+
+| Validation failure                                                                             | Missing authentication                                                                        | Unknown route                                                                      |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| ![Invalid registration request returning HTTP 422](docs/screenshots/task-2/validation-422.png) | ![Protected project request returning HTTP 401](docs/screenshots/task-2/unauthorized-401.png) | ![Unknown API route returning HTTP 404](docs/screenshots/task-2/not-found-404.png) |
+
+### Required evidence still to capture
+
+- One successful endpoint request and response, and a fresh authenticated `409 INVALID_STATUS_TRANSITION` workflow.
+- Postman collection run showing every request and test passing.
+- The actual quality gate output saved under `docs/reports/`.
+
+Those results are not claimed by this README. Run the API with synthetic data, capture the missing response flows, and save Postman and gate output before the submission release.
 
 ## Technology stack
 
 Versions below are the resolved versions in `uv.lock` (source of truth for what actually runs),
 not the unpinned ranges in `pyproject.toml`.
 
-| Component | Version |
-| --- | --- |
-| Python | 3.12 (pinned by `pyproject.toml`; see [ADR-213](docs/adr/ADR-213-python-3-12.md)) |
-| FastAPI | 0.141.1 |
-| Pydantic | 2.13.5 |
-| Pydantic Settings | 2.15.0 |
-| Uvicorn | 0.53.0 |
-| PyJWT | 2.14.0 |
-| argon2-cffi | 25.1.0 |
+| Component         | Version                                                                           |
+| ----------------- | --------------------------------------------------------------------------------- |
+| Python            | 3.12 (pinned by `pyproject.toml`; see [ADR-213](docs/adr/ADR-213-python-3-12.md)) |
+| FastAPI           | 0.141.1                                                                           |
+| Pydantic          | 2.13.5                                                                            |
+| Pydantic Settings | 2.15.0                                                                            |
+| Uvicorn           | 0.53.0                                                                            |
+| PyJWT             | 2.14.0                                                                            |
+| argon2-cffi       | 25.1.0                                                                            |
 
 ## Run it (3 commands)
 
@@ -64,26 +104,26 @@ Every setting comes from the environment and is validated at startup. A missing 
 stops the app and names the variable. `.env.example` is the source of truth and a test fails if a
 setting is missing from it.
 
-| Variable | Default | Meaning |
-| --- | --- | --- |
-| `APP_ENV` | `development` | `development`, `test` or `production`. Production turns Swagger UI off and adds HSTS. |
-| `HOST` | `127.0.0.1` | Bind address. The Docker image binds `0.0.0.0`. |
-| `PORT` | `8000` | Port. |
-| `LOG_LEVEL` | `info` | `debug`, `info`, `warning` or `error`. |
-| `SECRET_KEY` | required | JWT signing key, at least 32 bytes. |
-| `JWT_ISSUER` | `devdash-api` | `iss` claim, checked on every request. |
-| `JWT_AUDIENCE` | `devdash-clients` | `aud` claim, checked on every request. |
-| `ACCESS_TOKEN_TTL_SECONDS` | `900` | Token lifetime (60 to 86400). |
-| `CORS_ORIGINS` | empty | Comma-separated allowed origins. A wildcard is refused. |
-| `DOCS_ENABLED` | empty | Empty means on in development, off in production. |
-| `MAX_BODY_BYTES` | `1048576` | Request body limit (413 above it). |
-| `REQUEST_TIMEOUT_SECONDS` | `30` | Per-request timeout. |
-| `RATE_LIMIT_ATTEMPTS` | `5` | Login and registration attempts allowed per window. |
-| `RATE_LIMIT_WINDOW_SECONDS` | `60` | The window. |
-| `ARGON2_TIME_COST` | `3` | argon2id time cost. Lower only in tests. |
-| `ARGON2_MEMORY_KIB` | `65536` | argon2id memory cost. Lower only in tests. |
-| `SEED_PROFILE` | `none` | `none`, `default`, `empty` or `large`. Refused when `APP_ENV=production`. |
-| `SEED_PASSWORD` | empty | Password for seeded accounts; empty prints a random one. |
+| Variable                    | Default           | Meaning                                                                               |
+| --------------------------- | ----------------- | ------------------------------------------------------------------------------------- |
+| `APP_ENV`                   | `development`     | `development`, `test` or `production`. Production turns Swagger UI off and adds HSTS. |
+| `HOST`                      | `127.0.0.1`       | Bind address. The Docker image binds `0.0.0.0`.                                       |
+| `PORT`                      | `8000`            | Port.                                                                                 |
+| `LOG_LEVEL`                 | `info`            | `debug`, `info`, `warning` or `error`.                                                |
+| `SECRET_KEY`                | required          | JWT signing key, at least 32 bytes.                                                   |
+| `JWT_ISSUER`                | `devdash-api`     | `iss` claim, checked on every request.                                                |
+| `JWT_AUDIENCE`              | `devdash-clients` | `aud` claim, checked on every request.                                                |
+| `ACCESS_TOKEN_TTL_SECONDS`  | `900`             | Token lifetime (60 to 86400).                                                         |
+| `CORS_ORIGINS`              | empty             | Comma-separated allowed origins. A wildcard is refused.                               |
+| `DOCS_ENABLED`              | empty             | Empty means on in development, off in production.                                     |
+| `MAX_BODY_BYTES`            | `1048576`         | Request body limit (413 above it).                                                    |
+| `REQUEST_TIMEOUT_SECONDS`   | `30`              | Per-request timeout.                                                                  |
+| `RATE_LIMIT_ATTEMPTS`       | `5`               | Login and registration attempts allowed per window.                                   |
+| `RATE_LIMIT_WINDOW_SECONDS` | `60`              | The window.                                                                           |
+| `ARGON2_TIME_COST`          | `3`               | argon2id time cost. Lower only in tests.                                              |
+| `ARGON2_MEMORY_KIB`         | `65536`           | argon2id memory cost. Lower only in tests.                                            |
+| `SEED_PROFILE`              | `none`            | `none`, `default`, `empty` or `large`. Refused when `APP_ENV=production`.             |
+| `SEED_PASSWORD`             | empty             | Password for seeded accounts; empty prints a random one.                              |
 
 ## Try it: authentication walkthrough
 
@@ -123,32 +163,32 @@ FR IDs below are from `docs/standards/task2-standards-pack.md`; cross-cutting re
 (FR-223 to FR-233: authorization, error handling, validation, status codes, list contract,
 versioning, CORS, request IDs, health) apply across the table and are not repeated per row.
 
-| Method | Path | Who | What | FR |
-| --- | --- | --- | --- | --- |
-| POST | `/api/v1/auth/login` | public | Exchange credentials for a token | FR-203 |
-| GET | `/api/v1/auth/me` | any user | The current user | FR-204 |
-| POST | `/api/v1/users` | public | Register (201 + `Location`) | FR-201, FR-202 |
-| GET | `/api/v1/users` | any user | List, search `q`, filter `role` | FR-205 |
-| GET | `/api/v1/users/{userId}` | any user | One user | FR-206 |
-| PATCH | `/api/v1/users/{userId}` | self or lead | Name, avatar, preferences; role by a lead only | FR-207 |
-| DELETE | `/api/v1/users/{userId}` | lead | 204; 409 for the last lead or an owner of projects | FR-208 |
-| GET | `/api/v1/projects` | any user | List, filter `status`, `ownerId`, search `q` | FR-211 |
-| POST | `/api/v1/projects` | any user | Create; you become the owner | FR-209 |
-| GET | `/api/v1/projects/{projectId}` | any user | One project with progress | FR-210 |
-| PATCH | `/api/v1/projects/{projectId}` | owner or lead | Partial update | FR-212 |
-| DELETE | `/api/v1/projects/{projectId}` | owner or lead | 204; 409 while it has tasks | FR-213 |
-| GET | `/api/v1/projects/{projectId}/tasks` | any user | The project's tasks, same filters as `/tasks` | FR-220 |
-| GET | `/api/v1/tasks` | any user | Filter `status`, `priority`, `projectId`, `assigneeId`, `overdue`, `dueBefore`, `dueAfter`, `q` | FR-216 |
-| POST | `/api/v1/tasks` | project owner or lead | Create (status starts as `todo`) | FR-214 |
-| GET | `/api/v1/tasks/{taskId}` | any user | One task | FR-215 |
-| PATCH | `/api/v1/tasks/{taskId}` | owner, assignee or lead | Edit fields (not status) | FR-217 |
-| PATCH | `/api/v1/tasks/{taskId}/status` | owner, assignee or lead | Move through the workflow | FR-219 |
-| DELETE | `/api/v1/tasks/{taskId}` | owner or lead | 204 | FR-218 |
-| GET | `/api/v1/activity` | any user | Recent activity, newest first; `limit` is the page size | FR-221 |
-| GET | `/api/v1/dashboard/summary` | any user | Counts, completion rate and deadlines in the next 7 days | FR-222 |
-| GET | `/` | public | Welcome page (HTML) | FR-228 |
-| GET | `/healthz` | public | Liveness | FR-233 |
-| GET | `/readyz` | public | Readiness (503 when a dependency is down) | FR-233 |
+| Method | Path                                 | Who                     | What                                                                                            | FR             |
+| ------ | ------------------------------------ | ----------------------- | ----------------------------------------------------------------------------------------------- | -------------- |
+| POST   | `/api/v1/auth/login`                 | public                  | Exchange credentials for a token                                                                | FR-203         |
+| GET    | `/api/v1/auth/me`                    | any user                | The current user                                                                                | FR-204         |
+| POST   | `/api/v1/users`                      | public                  | Register (201 + `Location`)                                                                     | FR-201, FR-202 |
+| GET    | `/api/v1/users`                      | any user                | List, search `q`, filter `role`                                                                 | FR-205         |
+| GET    | `/api/v1/users/{userId}`             | any user                | One user                                                                                        | FR-206         |
+| PATCH  | `/api/v1/users/{userId}`             | self or lead            | Name, avatar, preferences; role by a lead only                                                  | FR-207         |
+| DELETE | `/api/v1/users/{userId}`             | lead                    | 204; 409 for the last lead or an owner of projects                                              | FR-208         |
+| GET    | `/api/v1/projects`                   | any user                | List, filter `status`, `ownerId`, search `q`                                                    | FR-211         |
+| POST   | `/api/v1/projects`                   | any user                | Create; you become the owner                                                                    | FR-209         |
+| GET    | `/api/v1/projects/{projectId}`       | any user                | One project with progress                                                                       | FR-210         |
+| PATCH  | `/api/v1/projects/{projectId}`       | owner or lead           | Partial update                                                                                  | FR-212         |
+| DELETE | `/api/v1/projects/{projectId}`       | owner or lead           | 204; 409 while it has tasks                                                                     | FR-213         |
+| GET    | `/api/v1/projects/{projectId}/tasks` | any user                | The project's tasks, same filters as `/tasks`                                                   | FR-220         |
+| GET    | `/api/v1/tasks`                      | any user                | Filter `status`, `priority`, `projectId`, `assigneeId`, `overdue`, `dueBefore`, `dueAfter`, `q` | FR-216         |
+| POST   | `/api/v1/tasks`                      | project owner or lead   | Create (status starts as `todo`)                                                                | FR-214         |
+| GET    | `/api/v1/tasks/{taskId}`             | any user                | One task                                                                                        | FR-215         |
+| PATCH  | `/api/v1/tasks/{taskId}`             | owner, assignee or lead | Edit fields (not status)                                                                        | FR-217         |
+| PATCH  | `/api/v1/tasks/{taskId}/status`      | owner, assignee or lead | Move through the workflow                                                                       | FR-219         |
+| DELETE | `/api/v1/tasks/{taskId}`             | owner or lead           | 204                                                                                             | FR-218         |
+| GET    | `/api/v1/activity`                   | any user                | Recent activity, newest first; `limit` is the page size                                         | FR-221         |
+| GET    | `/api/v1/dashboard/summary`          | any user                | Counts, completion rate and deadlines in the next 7 days                                        | FR-222         |
+| GET    | `/`                                  | public                  | Welcome page (HTML)                                                                             | FR-228         |
+| GET    | `/healthz`                           | public                  | Liveness                                                                                        | FR-233         |
+| GET    | `/readyz`                            | public                  | Readiness (503 when a dependency is down)                                                       | FR-233         |
 
 Task status workflow: `todo` → `in_progress` → `in_review` → `done`, with `in_review` → `in_progress`
 and `done` → `in_progress` to reopen. Anything else is `409 INVALID_STATUS_TRANSITION`, and the
@@ -174,34 +214,41 @@ curl -s $BASE/api/v1/dashboard/summary -H "Authorization: Bearer $TOKEN"
 Every error, including framework errors (unknown route, wrong method, bad JSON), has one shape:
 
 ```json
-{ "error": { "code": "VALIDATION_ERROR", "message": "One or more fields are invalid.",
-             "details": [{ "field": "title", "message": "Must be between 1 and 120 characters." }],
-             "requestId": "8f0c2e4a-3b1d-4f6e-9a57-2d7c1e9b5a10" } }
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "One or more fields are invalid.",
+    "details": [
+      { "field": "title", "message": "Must be between 1 and 120 characters." }
+    ],
+    "requestId": "8f0c2e4a-3b1d-4f6e-9a57-2d7c1e9b5a10"
+  }
+}
 ```
 
 `requestId` matches the `X-Request-ID` response header (send your own to trace a call). Stack
 traces and internals never appear in a response.
 
-| Status | Code | When |
-| --- | --- | --- |
-| 400 | `MALFORMED_REQUEST` | The body is not valid JSON |
-| 401 | `UNAUTHENTICATED` | Missing, malformed, expired or forged token |
-| 401 | `INVALID_CREDENTIALS` | Wrong email or password (identical for both) |
-| 403 | `FORBIDDEN` | Authenticated but not allowed |
-| 404 | `NOT_FOUND` | Unknown id or route |
-| 405 | `METHOD_NOT_ALLOWED` | Wrong method; `Allow` lists the right ones |
-| 409 | `EMAIL_ALREADY_EXISTS` | Registration with an address already in use |
-| 409 | `INVALID_STATUS_TRANSITION` | The workflow forbids the move |
-| 409 | `PROJECT_NOT_EMPTY` | Deleting a project that has tasks |
-| 409 | `PROJECT_CLOSED` | Adding a task to a completed project |
-| 409 | `USER_OWNS_PROJECTS` | Deleting a user who owns projects |
-| 409 | `LAST_LEAD` | Deleting or demoting the last lead |
-| 413 | `PAYLOAD_TOO_LARGE` | Body over 1 MB |
-| 415 | `UNSUPPORTED_MEDIA_TYPE` | Body is not `application/json` |
-| 422 | `VALIDATION_ERROR` | Bad fields, unknown fields, bad query, unknown referenced id |
-| 429 | `RATE_LIMITED` | Too many login or registration attempts; see `Retry-After` |
-| 500 | `INTERNAL_ERROR` | Unexpected; generic message, details are in the server log |
-| 503 | `SERVICE_UNAVAILABLE` | `/readyz` when a dependency is down |
+| Status | Code                        | When                                                         |
+| ------ | --------------------------- | ------------------------------------------------------------ |
+| 400    | `MALFORMED_REQUEST`         | The body is not valid JSON                                   |
+| 401    | `UNAUTHENTICATED`           | Missing, malformed, expired or forged token                  |
+| 401    | `INVALID_CREDENTIALS`       | Wrong email or password (identical for both)                 |
+| 403    | `FORBIDDEN`                 | Authenticated but not allowed                                |
+| 404    | `NOT_FOUND`                 | Unknown id or route                                          |
+| 405    | `METHOD_NOT_ALLOWED`        | Wrong method; `Allow` lists the right ones                   |
+| 409    | `EMAIL_ALREADY_EXISTS`      | Registration with an address already in use                  |
+| 409    | `INVALID_STATUS_TRANSITION` | The workflow forbids the move                                |
+| 409    | `PROJECT_NOT_EMPTY`         | Deleting a project that has tasks                            |
+| 409    | `PROJECT_CLOSED`            | Adding a task to a completed project                         |
+| 409    | `USER_OWNS_PROJECTS`        | Deleting a user who owns projects                            |
+| 409    | `LAST_LEAD`                 | Deleting or demoting the last lead                           |
+| 413    | `PAYLOAD_TOO_LARGE`         | Body over 1 MB                                               |
+| 415    | `UNSUPPORTED_MEDIA_TYPE`    | Body is not `application/json`                               |
+| 422    | `VALIDATION_ERROR`          | Bad fields, unknown fields, bad query, unknown referenced id |
+| 429    | `RATE_LIMITED`              | Too many login or registration attempts; see `Retry-After`   |
+| 500    | `INTERNAL_ERROR`            | Unexpected; generic message, details are in the server log   |
+| 503    | `SERVICE_UNAVAILABLE`       | `/readyz` when a dependency is down                          |
 
 ## Architecture
 
@@ -223,19 +270,19 @@ writing a new set of repositories; a contract test suite runs against every impl
 make gate        # everything below, stops at the first failure
 ```
 
-| Target | What it checks |
-| --- | --- |
-| `make lint` | `ruff check` and `ruff format --check` (complexity at most 10) |
-| `make typecheck` | `mypy --strict` on `app`, `scripts` and `tests` |
-| `make layers` | import-linter contracts |
-| `make test` | pytest with coverage (threshold 90%) and the endpoint-coverage gate |
-| `make spec-check` | `docs/openapi.json` equals what the app generates |
-| `make spec-diff` | no breaking change against `origin/main` |
-| `make contract` | Schemathesis over every operation |
-| `make security` | bandit and pip-audit |
-| `make postman` | the Postman collection under Newman |
-| `make load` | Locust on 500 tasks, p95 thresholds |
-| `make docker` | the image builds |
+| Target            | What it checks                                                      |
+| ----------------- | ------------------------------------------------------------------- |
+| `make lint`       | `ruff check` and `ruff format --check` (complexity at most 10)      |
+| `make typecheck`  | `mypy --strict` on `app`, `scripts` and `tests`                     |
+| `make layers`     | import-linter contracts                                             |
+| `make test`       | pytest with coverage (threshold 90%) and the endpoint-coverage gate |
+| `make spec-check` | `docs/openapi.json` equals what the app generates                   |
+| `make spec-diff`  | no breaking change against `origin/main`                            |
+| `make contract`   | Schemathesis over every operation                                   |
+| `make security`   | bandit and pip-audit                                                |
+| `make postman`    | the Postman collection under Newman                                 |
+| `make load`       | Locust on 500 tasks, p95 thresholds                                 |
+| `make docker`     | the image builds                                                    |
 
 After changing an endpoint, run `make export-spec` and commit `docs/openapi.json`; CI fails if it is
 stale. `make secrets` runs gitleaks if it is installed (CI always runs it).
